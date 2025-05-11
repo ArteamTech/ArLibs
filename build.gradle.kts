@@ -3,54 +3,77 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "2.1.20"
     id("com.gradleup.shadow") version "9.0.0-beta13"
-    id("java")
 }
 
-group = "dev.arteam"
+group = "com.arteam"
 version = "1.0.0-SNAPSHOT"
 description = "A Minecraft plugin framework for easy customization and extension."
 
 repositories {
     mavenCentral()
-    maven("https://repo.papermc.io/repository/maven-public/") // Paper API
-    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") // Spigot API
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://oss.sonatype.org/content/repositories/snapshots")
+    maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {
-    // Kotlin standard library
+    // Kotlin
     implementation(kotlin("stdlib"))
+    implementation(kotlin("reflect"))
     
-    // Minecraft server API - using Paper, but you can switch to Spigot if needed
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
+
+    // Paper API
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
+
+    // Adventure (for text components)
+    implementation("net.kyori:adventure-api:4.21.0")
+    implementation("net.kyori:adventure-text-minimessage:4.21.0")
+
+    // Configuration
+    implementation("org.yaml:snakeyaml:2.4")
+
+    // Database
+    implementation("com.zaxxer:HikariCP:6.3.0")
+    implementation("com.mysql:mysql-connector-j:9.3.0")
+    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
+    implementation("redis.clients:jedis:6.0.0")
+    implementation("org.mongodb:mongodb-driver-sync:5.5.0")
+    
+    // Cache
+    implementation("com.github.ben-manes.caffeine:caffeine:3.2.0")
 }
 
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+tasks {
+    compileKotlin {
+        kotlinOptions.jvmTarget = "21"
     }
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "21"
-}
-
-tasks.withType<ProcessResources> {
-    val props = mapOf("version" to version)
-    inputs.properties(props)
-    filteringCharset = "UTF-8"
-    filesMatching("plugin.yml") {
-        expand(props)
+    
+    compileTestKotlin {
+        kotlinOptions.jvmTarget = "21"
     }
-}
-
-tasks.shadowJar {
-    archiveBaseName.set(project.name)
-    archiveClassifier.set("")
-    archiveVersion.set(project.version.toString())
-      
-    minimize()
-}
-
-tasks.build {
-    dependsOn(tasks.shadowJar)
+    
+    processResources {
+        filesMatching("plugin.yml") {
+            expand(project.properties)
+        }
+    }
+    
+    shadowJar {
+        archiveClassifier.set("")
+        archiveVersion.set(project.version.toString())
+        
+        // Relocate dependencies to avoid conflicts
+        relocate("kotlin", "com.twinkovo.mythlibs.lib.kotlin")
+        relocate("org.yaml.snakeyaml", "com.twinkovo.mythlibs.lib.snakeyaml")
+        relocate("net.kyori", "com.twinkovo.mythlibs.lib.kyori")
+        relocate("com.github.benmanes.caffeine", "com.twinkovo.mythlibs.lib.caffeine")
+        relocate("org.jetbrains.kotlinx", "com.twinkovo.mythlibs.lib.kotlinx")
+    }
+    
+    build {
+        dependsOn(shadowJar)
+    }
 }

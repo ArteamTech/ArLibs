@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Commenting Style Guide
+
+This document outlines the commenting conventions for the ArLibs project. Good comments are crucial for understanding and maintaining the codebase.
+
+## General Guidelines
+
+- Write comments to explain *why* something is done, not *what* is being done (the code should make the "what" clear).
+- Keep comments concise and to the point.
+- Update comments when the code they refer to changes.
+- Avoid obvious comments that add no value.
+
+## Comment Languages
+
+- Comments can be written in **English** and/or **Simplified Chinese (简体中文)**.
+- When providing bilingual comments, it's preferred to have the English comment first, followed by the Chinese comment, as seen in [`ArLibs.kt`](mdc:src/main/kotlin/com/arteam/arlibs/ArLibs.kt).
+  Example:
+  ```kotlin
+  // Initialize logger with debug mode disabled
+  // 初始化日志记录器，禁用调试模式
+  Logger.init(this)
+  ```
+
+## Comment Types
+
+- **KDoc / Documentation Comments (`/** ... */`)**: 
+    - Use KDoc for all public APIs (classes, methods, properties).
+    - These comments are used to generate documentation.
+    - Describe the purpose of the element, its parameters (using `@param`), and what it returns (using `@return`).
+    - Example from [`ArLibs.kt`](mdc:src/main/kotlin/com/arteam/arlibs/ArLibs.kt):
+      ```kotlin
+      /**
+       * Register language files
+       * 注册语言文件
+       */
+      private fun registerLanguages() {
+          // ...
+      }
+      ```
+
+- **Single-line Comments (`//`)**: 
+    - Use for brief explanations on a single line or at the end of a line of code.
+    - Can also be used for implementation notes within a function body.
+
+- **Block Comments (`/* ... */`)**: 
+    - Can be used for multi-line comments within function bodies if KDoc is not appropriate (e.g., for commenting out a block of code temporarily, though version control is preferred for this).
+
+## TODO Comments
+
+- Use `// TODO:` for tasks that need to be done.
+- Include a brief description of the task and, if possible, your name/initials and the date.
+  Example:
+  ```kotlin
+  // TODO: (Username, YYYY-MM-DD) Refactor this to improve performance
+  ```
+

@@ -1,7 +1,7 @@
 name: ArLibs
 version: ${version}
-main: dev.arteam.arlibs.ArLibs
+main: com.arteam.arlibs.ArLibs
 api-version: '1.20'
-authors: [ Arteam ]
-description: A Minecraft plugin framework for easy customization and extension.
-website: https://github.com/arteam/ArLibs 
+authors: [ArteamTech]
+description: A powerful library plugin for Minecraft servers
+website: https://github.com/ArteamTech/ArLibs

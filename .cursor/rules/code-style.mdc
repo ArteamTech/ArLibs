@@ -1,0 +1,54 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Code Style Guide
+
+This document outlines the code style conventions for the ArLibs project. Consistency in code style improves readability and maintainability.
+
+## General Kotlin Conventions
+
+- Follow the official [Kotlin Coding Conventions](mdc:https:/kotlinlang.org/docs/coding-conventions.html) where not otherwise specified.
+- Use 4 spaces for indentation.
+- Avoid wildcard imports where possible; prefer explicit imports.
+
+## Naming Conventions
+
+- **Packages**: Lowercase, with multiple words concatenated. Example: `com.arteam.arlibs.language`.
+- **Classes and Interfaces**: PascalCase. Example: `LanguageManager`, `ArLibs`.
+- **Functions and Properties**: camelCase. Example: `onEnable`, `registerLanguages`, `logger`.
+- **Constants (top-level or object properties)**: UPPER_SNAKE_CASE. Example: `MAX_CONNECTIONS`.
+
+## File Structure
+
+- Each Kotlin file (`.kt`) should typically contain a single public class or a set of related top-level functions/extensions.
+- File names should match the name of the primary public class they contain (e.g., `LanguageManager.kt` for the `LanguageManager` class).
+
+## Annotations
+
+- Place annotations on separate lines before the declaration they apply to, unless it's a single, simple annotation.
+- Example from [`ArLibs.kt`](mdc:src/main/kotlin/com/arteam/arlibs/ArLibs.kt):
+  ```kotlin
+  @dev.arteam.arlibs.language.annotations.Language(
+      name = "zh_CN",
+      displayName = "简体中文",
+      version = 1,
+      isDefault = true,
+      cloudUrl = "https://raw.githubusercontent.com/YourRepo/MythLibs/main/languages/zh_CN.yml",
+      autoUpdate = true,
+      updateInterval = 60
+  )
+  class ZhCNLanguage
+  ```
+
+## Null Safety
+
+- Strive to avoid nullable types where possible.
+- When nullability is necessary, use Kotlin's null-safety features (e.g., `?.`, `?:`, `!!` sparingly and with justification).
+
+## Lambdas
+
+- For short, single-expression lambdas, use the implicit `it` parameter if its meaning is clear.
+- For longer or more complex lambdas, or when `it` would be ambiguous, declare parameters explicitly.
+

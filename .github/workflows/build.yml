@@ -22,7 +22,9 @@ jobs:
           java-version: 21
 
       - name: Set up Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/gradle-build-action@v4
+        with:
+          cache-read-only: false
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
@@ -30,8 +32,8 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
-      - name: Upload shadow JAR
+      - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
-          name: ArLibs-shadow
-          path: build/libs/*-all.jar
+          name: ArLibs-jar
+          path: build/libs/*.jar
