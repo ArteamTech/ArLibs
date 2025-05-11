@@ -1,0 +1,59 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# ArLibs Project Structure
+
+This document outlines the structure of the ArLibs Minecraft plugin library, which serves as a foundation for extending other projects.
+
+## Main Plugin Class
+
+The main entry point is [src/main/kotlin/dev/arteam/arlibs/ArLibs.kt](mdc:src/main/kotlin/dev/arteam/arlibs/ArLibs.kt), which initializes the plugin and provides access to the library's core functionality.
+
+## Utility Packages
+
+### Color Utilities
+
+The [ColorUtil](mdc:src/main/kotlin/dev/arteam/arlibs/utils/ColorUtil.kt) class provides methods for handling Minecraft text colors with support for:
+- Standard color codes (`&a`, `§b`)
+- Hex colors (`&#FFFFFF`, `&{#FFFFFF}`)
+- Gradient colors (`<g:#FFFFFF:#000000>`)
+- Rainbow colors (`<r:0.4>`)
+
+### Logging Utilities
+
+The [Logger](mdc:src/main/kotlin/dev/arteam/arlibs/utils/Logger.kt) class offers an enhanced logging system that:
+- Supports colored output
+- Ensures proper plugin attribution
+- Provides debug mode capabilities
+
+## Configuration
+
+The plugin is configured using [build.gradle.kts](mdc:build.gradle.kts) for dependency management and build settings.
+
+The [plugin.yml](mdc:src/main/resources/plugin.yml) file contains metadata about the plugin for Bukkit/Spigot/Paper servers.
+
+## Project Structure
+
+```
+ArLibs/
+├── src/
+│   └── main/
+│       ├── kotlin/
+│       │   └── dev/
+│       │       └── arteam/
+│       │           └── arlibs/
+│       │               ├── ArLibs.kt             # Main plugin class
+│       │               ├── api/                  # Public API interfaces
+│       │               ├── utils/                # Utility classes
+│       │               │   ├── ColorUtil.kt      # Color handling
+│       │               │   └── Logger.kt         # Enhanced logging
+│       │               ├── config/               # Configuration handling
+│       │               └── events/               # Event handling
+│       └── resources/
+│           ├── plugin.yml                        # Plugin metadata
+│           └── config.yml                        # Default configuration
+└── build.gradle.kts                              # Build configuration
+```
+
