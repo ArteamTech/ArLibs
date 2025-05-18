@@ -1,0 +1,4 @@
+name: ArLibs
+version: '1.0.0-SNAPSHOT'
+main: com.arteam.arLibs.ArLibs
+api-version: '1.20'

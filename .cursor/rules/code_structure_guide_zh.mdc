@@ -1,0 +1,38 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# ArLibs 项目结构指南
+
+本指南旨在帮助理解 ArLibs 项目的主要代码结构。
+
+## 核心目录
+
+*   `src/main/kotlin/com/arteam/arLibs/`: 这是项目主要的 Kotlin 源代码存放位置。
+    *   `api/`: 存放暴露给其他插件使用的 API 接口。
+    *   `internal/`: 存放项目内部实现，不建议外部直接依赖。
+    *   `core/`: 存放核心功能模块。
+    *   `utils/`: 存放工具类。
+    *   `ArLibs.kt`: 插件主类或核心初始化类。
+*   `src/main/resources/`: 存放项目的资源文件，例如 `plugin.yml` (Bukkit/Spigot/Paper 插件描述文件), 配置文件模板等。
+*   `.github/`: 存放 GitHub 相关配置。
+    *   `workflows/`: 包含 GitHub Actions 工作流，例如 [build.yml](mdc:.github/workflows/build.yml) 用于自动化构建。
+    *   `ISSUE_TEMPLATE/`: 包含问题报告模板，如 [bug_report.md](mdc:.github/ISSUE_TEMPLATE/bug_report.md) 和 [feature_request.md](mdc:.github/ISSUE_TEMPLATE/feature_request.md)。
+    *   [PULL_REQUEST_TEMPLATE.md](mdc:.github/PULL_REQUEST_TEMPLATE.md): Pull Request 模板。
+
+## 重要文件
+
+*   [build.gradle.kts](mdc:build.gradle.kts): Gradle 构建脚本，定义了项目的依赖、构建过程等。
+*   [settings.gradle.kts](mdc:settings.gradle.kts): Gradle 设置文件，通常定义项目名称和包含的模块。
+*   [README.md](mdc:README.md): 项目的英文介绍文档。
+*   [README_CN.md](mdc:README_CN.md): 项目的中文介绍文档。
+*   [LICENSE](mdc:LICENSE): 项目的开源许可证文件。
+*   [CONTRIBUTING.md](mdc:CONTRIBUTING.md): 项目贡献指南。
+
+## 导航提示
+
+*   当需要理解项目如何构建时，请查阅 [build.gradle.kts](mdc:build.gradle.kts)。
+*   当需要了解插件的主要功能入口时，请查找 `src/main/kotlin/com/arteam/arLibs/` 下的主类 (例如 `ArLibs.kt` 或类似的名称)。
+*   当需要添加新的依赖库时，请修改 [build.gradle.kts](mdc:build.gradle.kts) 中的 `dependencies` 部分。
+

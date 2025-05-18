@@ -1,0 +1,100 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# ArLibs 项目注释规范 (中文)
+
+本规范旨在统一项目中的代码注释风格，提高代码的可读性和可维护性。
+
+## 通用原则
+
+*   注释应当清晰、简洁，并准确描述代码的意图。
+*   避免冗余或解释显而易见代码的注释。
+*   保持注释与代码同步更新。
+
+## 注释语言与格式
+
+1.  **文件头部注释 (File Headers)**
+    *   **强制要求**: 必须包含文件版权声明、作者信息、创建日期以及文件简要描述。
+    *   **语言**: 英文在前，中文在后。中英文之间用空行隔开。
+    *   **示例**:
+        ```kotlin
+        /**
+         * English description of the file, explaining its main purpose and functionality.
+         * For example, this file contains utility functions for string manipulation.
+         *
+         * 中文描述文件，解释其主要目的和功能。
+         * 例如，此文件包含用于字符串操作的实用函数。
+         *
+         * @author YourName
+         * @since YYYY-MM-DD
+         * @version 1.0.0
+         */
+        package com.arteam.arLibs.utils
+        // ... rest of the file content
+        ```
+
+2.  **文档注释 (KDoc / Javadoc)**
+    *   **适用范围**: 公共类 (public class), 公共方法 (public method), 公共属性 (public property), 以及其他需要外部理解的API。
+    *   **语言**: 英文在前，中文在后。中英文描述块各自独立，可以使用 `@param`, `@return`, `@throws` 等标签分别用英文和中文解释。
+    *   **示例**:
+        ```kotlin
+        /**
+         * English description of the function. Explains what it does, its parameters, and what it returns.
+         * This function concatenates two strings with a specified delimiter.
+         *
+         * 中文函数描述。解释它的功能、参数和返回值。
+         * 此函数使用指定的分隔符连接两个字符串。
+         *
+         * @param str1 The first string.
+         *             第一个字符串。
+         * @param str2 The second string.
+         *             第一个字符串。
+         * @param delimiter The delimiter to use between the two strings.
+         *                  两个字符串之间使用的分隔符。
+         * @return The concatenated string.
+         *         连接后的字符串。
+         * @throws IllegalArgumentException if any input string is null.
+         *                                  如果任何输入字符串为 null。
+         */
+        fun concatenateStrings(str1: String?, str2: String?, delimiter: String): String {
+            if (str1 == null || str2 == null) {
+                throw IllegalArgumentException("Input strings cannot be null.") // English only for inline/less important
+            }
+            return str1 + delimiter + str2
+        }
+        ```
+
+3.  **重要代码块注释**
+    *   **适用范围**: 复杂的逻辑、算法实现、重要的业务规则或需要特别注意的代码段。
+    *   **语言**: 英文在前，中文在后。可以采用块注释或多行单行注释的形式。
+    *   **示例**:
+        ```kotlin
+        // English: Initialize the connection pool with specific configurations.
+        // This is critical for performance under high load.
+        // 中文：使用特定配置初始化连接池。
+        // 这对于高负载下的性能至关重要。
+        val poolConfig = PoolConfig()
+        poolConfig.maxSize = 100
+        // ... other configurations
+        ```
+
+4.  **单行注释或相对不重要的注释**
+    *   **适用范围**: 对单行代码的简短解释、临时标记 (如 TODO, FIXME)、或不太关键的说明。
+    *   **语言**: **仅使用英文**。
+    *   **示例**:
+        ```kotlin
+        // TODO: Refactor this later to improve efficiency.
+        var count = 0 // Initialize count to zero.
+
+        if (user.isVerified()) { // Check if user is verified
+            // Proceed with action
+        }
+        ```
+
+## KtLint 与格式化
+
+*   虽然本规范定义了注释内容和语言，代码的整体格式应遵循项目配置的 KtLint 规则。
+
+*   注释的排版也应清晰易读
