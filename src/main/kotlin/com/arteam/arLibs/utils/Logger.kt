@@ -124,12 +124,18 @@ object Logger {
      */
     private fun log(plugin: Plugin, level: Level, message: String, forceSync: Boolean = false) {
         val logTask = {
-            val logger = plugin.logger
+            // First, convert & to § for Minecraft's color format
+            val processedMessage = ColorUtil.process(message)
+            
+            // Format the message with plugin name
+            val formattedMessage = "[${plugin.name}] $processedMessage"
+            
+            // Use console sender for color support
             when (level) {
-                Level.INFO -> logger.info(message)
-                Level.WARNING -> logger.warning(message)
-                Level.SEVERE -> logger.severe(message)
-                else -> logger.log(level, message)
+                Level.INFO -> Bukkit.getConsoleSender().sendMessage(formattedMessage)
+                Level.WARNING -> Bukkit.getConsoleSender().sendMessage("§e$formattedMessage")  // Yellow for warnings
+                Level.SEVERE -> Bukkit.getConsoleSender().sendMessage("§c$formattedMessage")   // Red for severe errors
+                else -> Bukkit.getConsoleSender().sendMessage(formattedMessage)
             }
         }
 

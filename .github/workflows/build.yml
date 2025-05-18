@@ -21,4 +21,9 @@ jobs:
     - name: Grant execute permission to gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
-      run: ./gradlew build 
+      run: ./gradlew build
+    - name: Upload plugin artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ArLibs-Plugin
+        path: build/libs/*.jar
