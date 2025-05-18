@@ -40,6 +40,8 @@ object Logger {
     fun init(plugin: Plugin, debug: Boolean = false) {
         pluginContext.set(plugin)
         debugMode = debug
+        // Use Bukkit's logger for this initial confirmation as our own logger might not be fully ready
+        Bukkit.getLogger().info("[ArLibs Logger.init] Context set for ${plugin.name}. Debug mode explicitly set to: $debugMode")
     }
 
     /**
@@ -106,6 +108,12 @@ object Logger {
     fun debug(message: String) {
         if (debugMode) {
             log(getPluginContext(), Level.FINE, "[DEBUG] $message")
+        } else {
+            // This will help us see if debug messages are being suppressed when we expect them.
+            // Avoid logging this message if getPluginContext() itself would fail.
+            if (pluginContext.get() != null) {
+                 log(getPluginContext(), Level.INFO, "[DEBUG SUPPRESSED] $message")
+            }
         }
     }
 

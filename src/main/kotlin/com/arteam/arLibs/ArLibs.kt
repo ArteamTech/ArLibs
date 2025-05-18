@@ -11,6 +11,11 @@
  */
 package com.arteam.arLibs
 
+import com.arteam.arLibs.config.ConfigManager
+import com.arteam.arLibs.config.CoreConfig
+import com.arteam.arLibs.config.examples.ConfigCommand
+import com.arteam.arLibs.config.examples.ServerConfig
+import com.arteam.arLibs.config.examples.StructuredConfig
 import com.arteam.arLibs.utils.Logger
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -31,21 +36,48 @@ class ArLibs : JavaPlugin() {
         }
     }
     
+    // Core configuration
+    private lateinit var coreConfig: CoreConfig
+    
+    // Optional example configurations
+    private var serverConfig: ServerConfig? = null
+    private var structuredConfig: StructuredConfig? = null
+    
     @Suppress("UnstableApiUsage")
     override fun onEnable() {
         instance = this
+
+        // Initialize the logger
+        Logger.init(this, debug = coreConfig.debug.enabled)
         
-        // Initialize the logger uses ThreadLocal, so init() sets the context for the current thread.
-        // If other threads or parts of your plugin need to log, ensure Logger.init() is called
-        // appropriately or modify Logger to handle context differently (e.g., passing plugin instance).
-        Logger.init(this, debug = false)
+        // Create data folder if it doesn't exist
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs()
+        }
+        
+        // Initialize core configuration first
+        try {
+            coreConfig = ConfigManager.register(CoreConfig::class)
+        } catch (e: Exception) {
+            // Use Bukkit's logger directly if our Logger or Config fails critically early
+            getLogger().severe("Failed to load core configuration: ${e.message}")
+            e.printStackTrace()
+            server.pluginManager.disablePlugin(this)
+            return
+        }
+        
+        // Initialize the logger again with debug setting from config (if needed, or remove this if hardcoding for test)
+        // For this test, we can comment this out to keep the hardcoded debug = true
+        // Logger.init(this, debug = coreConfig.debug.enabled)
+        // Logger.info("Logger re-initialized with config debug: ${coreConfig.debug.enabled}")
         
         // Log plugin startup
         Logger.info("Plugin is starting up...")
         Logger.info("Version: &e${pluginMeta.version}")
         Logger.info("Author: &e${pluginMeta.authors.joinToString(", ")}")
         
-        // TODO: Initialize other components
+        // Initialize the rest of the configuration system
+        initConfigurations()
         
         Logger.info("Plugin has been enabled successfully!")
     }
@@ -63,4 +95,41 @@ class ArLibs : JavaPlugin() {
         Logger.close() // Close the logger and release resources
     }
     
+    /**
+     * Initializes the configuration system and loads configuration files.
+     * 初始化配置系统并加载配置文件。
+     */
+    private fun initConfigurations() {
+        try {
+            // Log configuration info
+            Logger.info("Debug mode: ${if (coreConfig.debug.enabled) "&aenabled" else "&cdisabled"}")
+            Logger.info("Log level: ${coreConfig.debug.logLevel}")
+            
+            // Initialize example configurations if examples are enabled
+            if (coreConfig.debug.enableExamples) {
+                Logger.info("Examples are enabled, loading example configurations...")
+                
+                // Register and load the server configuration
+                serverConfig = ConfigManager.register(ServerConfig::class)
+                Logger.info("Loaded server configuration")
+                
+                // Register and load the structured configuration
+                structuredConfig = ConfigManager.register(StructuredConfig::class)
+                Logger.info("Loaded structured configuration")
+                
+                // Log example configuration values
+                Logger.info("Example config - Server name: ${serverConfig?.serverName}")
+                Logger.info("Example config - Structured app name: ${structuredConfig?.general?.name}")
+                
+                // Register the example command
+                ConfigCommand.register(this)
+                Logger.info("Registered example configuration command")
+            } else {
+                Logger.info("Examples are disabled. Set 'debug.enable-examples' to true in core.yml to enable examples.")
+            }
+        } catch (e: Exception) {
+            Logger.severe("Failed to initialize configurations: ${e.message}")
+            e.printStackTrace()
+        }
+    }
 }
