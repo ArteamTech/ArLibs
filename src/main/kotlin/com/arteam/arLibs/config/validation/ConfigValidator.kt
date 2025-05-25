@@ -15,22 +15,22 @@ package com.arteam.arLibs.config.validation
  * Interface for validating configuration values.
  * 用于验证配置值的接口。
  *
- * @param T The type of value to validate
- *          要验证的值的类型
+ * @param T The type of value to validate (indicative, actual validation uses Any?)
+ *          要验证的值的类型 (指示性，实际验证使用 Any?)
  */
 interface ConfigValidator<T> {
     /**
      * Validates the given value.
      * 验证给定的值。
      *
-     * @param value The value to validate
-     *              要验证的值
+     * @param value The value to validate, can be of any type.
+     *              要验证的值，可以是任何类型。
      * @param path The configuration path of the value
      *             值的配置路径
      * @return ValidationResult indicating whether validation passed and any error messages
      *         ValidationResult，指示验证是否通过以及任何错误消息
      */
-    fun validate(value: T, path: String): ValidationResult
+    fun validate(value: Any?, path: String): ValidationResult
 }
 
 /**
@@ -50,6 +50,9 @@ data class ValidationResult(
         /**
          * Creates a successful validation result.
          * 创建成功的验证结果。
+         *
+         * @return The successful validation result
+         *         成功的验证结果
          */
         fun success(): ValidationResult = ValidationResult(true)
         
@@ -59,6 +62,8 @@ data class ValidationResult(
          *
          * @param message The error message
          *                错误消息
+         * @return The failed validation result
+         *         失败验证结果
          */
         fun failure(message: String): ValidationResult = ValidationResult(false, message)
     }

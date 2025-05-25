@@ -37,7 +37,25 @@ class RegexValidator(
     constructor(patternString: String, errorMessageFormat: String = "Value '{value}' at '{path}' does not match the required pattern") : 
         this(patternString.toRegex(), errorMessageFormat)
     
-    override fun validate(value: String, path: String): ValidationResult {
+    /**
+     * Validates the given value.
+     * 验证给定的值。
+     *
+     * @param value The value to validate, can be of any type.
+     *              要验证的值，可以是任何类型。
+     * @param path The configuration path of the value
+     *             值的配置路径
+     * @return The validation result
+     *         验证结果
+     */
+    override fun validate(value: Any?, path: String): ValidationResult {
+        if (value == null) {
+            return ValidationResult.failure("Value at '$path' cannot be null for RegexValidator")
+        }
+        if (value !is String) {
+            return ValidationResult.failure("Value at '$path' must be a String for RegexValidator, but was ${value::class.simpleName}")
+        }
+        
         return if (pattern.matches(value)) {
             ValidationResult.success()
         } else {
@@ -47,7 +65,11 @@ class RegexValidator(
             ValidationResult.failure(errorMessage)
         }
     }
-    
+
+    /**
+     * Companion object for creating predefined regex validators.
+     * 用于创建预定义的正则表达式验证器的伴生对象。
+     */
     companion object {
         /**
          * Email validator pattern.

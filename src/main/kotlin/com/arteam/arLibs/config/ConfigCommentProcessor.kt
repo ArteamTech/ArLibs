@@ -30,6 +30,7 @@ import kotlin.reflect.jvm.javaField
  * Processes and writes comments to configuration files based on annotations.
  * 根据注解处理并将注释写入配置文件。
  */
+@Suppress("unused")
 class ConfigCommentProcessor {
     companion object {
         /**
@@ -44,8 +45,6 @@ class ConfigCommentProcessor {
          *                   包含配置数据的 YamlConfiguration
          */
         fun saveWithComments(configClass: KClass<*>, configFile: File, yamlConfig: YamlConfiguration) {
-            Logger.debug("[saveWithComments] For KClass: ${configClass.simpleName}, File: ${configFile.path}")
-            
             // Store and clear the header from the YamlConfiguration object itself
             // to prevent saveToString() from outputting any header it might have loaded.
             // The actual header will be added by processComments based on @Config annotation.
@@ -54,7 +53,6 @@ class ConfigCommentProcessor {
 
             // Get the string representation of the YAML config (values only)
             val yamlString = yamlConfig.saveToString()
-            Logger.debug("[saveWithComments] yamlString from yamlConfig.saveToString() (should be values only):\n$yamlString")
 
             // Restore the original header string to the YamlConfiguration object if needed for its state, though not strictly for this save.
             if (loadedHeaderLines.isNotEmpty()) { // Check if it's not null and not empty
@@ -71,7 +69,6 @@ class ConfigCommentProcessor {
             // Process comments (add header, field, value comments to 'content')
             // processComments will add the header from @Config annotation.
             val commentedLines = processComments(configClass, content)
-            Logger.debug("[saveWithComments] Total commented lines to write: ${commentedLines.size}")
             
             // Write the content with comments back to the file, overwriting it.
             BufferedWriter(FileWriter(configFile)).use { writer ->
@@ -87,9 +84,15 @@ class ConfigCommentProcessor {
         /**
          * Processes comments for a configuration class.
          * 处理配置类的注释。
+         * 
+         * @param configClass The class of the configuration
+         *                    配置的类
+         * @param content The content of the configuration file
+         *                配置文件的内容
+         * @return The processed content with comments
+         *         处理后的内容包含注释
          */
         private fun processComments(configClass: KClass<*>, content: MutableList<String>): List<String> {
-            Logger.debug("[processComments] For KClass: ${configClass.simpleName}, Initial content lines: ${content.size}")
             val result = mutableListOf<String>()
             
             // Add file header comments if any
@@ -97,20 +100,18 @@ class ConfigCommentProcessor {
             if (configAnnotation != null && configAnnotation.comments.isNotEmpty()) {
                 for (comment in configAnnotation.comments) {
                     result.add("# $comment")
-                    Logger.debug("[processComments] Added file header comment: # $comment")
                 }
                 result.add("")
             }
             
             // Process field comments
             val pathComments = collectComments(configClass)
-            Logger.debug("[processComments] Collected pathComments: $pathComments")
             
             // Add comments to the content
             var currentPath = ""
             val indentStack = mutableListOf<String>()
             
-            for (line in content) {
+            for ((lineIndex, line) in content.withIndex()) {
                 val trimmedLine = line.trim()
                 var colonIndex = -1 // Initialize colonIndex here
 
@@ -151,8 +152,8 @@ class ConfigCommentProcessor {
                                 val lastDotCurrent = currentPath.lastIndexOf('.')
                                 currentPath = if (lastDotCurrent != -1) currentPath.substring(0, lastDotCurrent) + ".$key" else key
 
-                            } else { // Same level
-                                // Same level, just update the last key
+                            } else {
+                                // Same level , just update the last key
                                 val lastDot = currentPath.lastIndexOf('.')
                                 currentPath = if (lastDot != -1) {
                                     currentPath.substring(0, lastDot) + ".$key"
@@ -167,17 +168,18 @@ class ConfigCommentProcessor {
                         if (comments != null) {
                             for (comment in comments) {
                                 result.add("${indent}# $comment")
-                                Logger.debug("[processComments] Added comment for path '$currentPath': ${indent}# $comment")
                             }
                         }
                     }
                 }
                 result.add(line)
-                // If the line processed was a key-value pair (not a list item or empty), and it's not a section header itself (which usually doesn't have a value on the same line)
+                
+                // Improved logic for adding blank lines after key-value pairs
+                // Check if the current line is a key-value pair (not a section header)
                 if (trimmedLine.isNotEmpty() && !trimmedLine.startsWith("#") && colonIndex > 0 && !trimmedLine.endsWith(":")) {
                     // Add a blank line after a key-value pair for spacing, but not if it's the last line in the content
                     // or if the next line is already blank or a comment (to avoid double-spacing)
-                    val nextLineIndex = content.indexOf(line) + 1
+                    val nextLineIndex = lineIndex + 1
                     if (nextLineIndex < content.size) {
                         val nextTrimmedLine = content[nextLineIndex].trim()
                         if (nextTrimmedLine.isNotEmpty() && !nextTrimmedLine.startsWith("#")) {
@@ -205,9 +207,13 @@ class ConfigCommentProcessor {
         /**
          * Collects comments from a configuration class.
          * 从配置类收集注释。
+         * 
+         * @param configClass The class of the configuration
+         *                    配置的类
+         * @return A map of path to comments
+         *         一个包含路径到注释的映射
          */
         private fun collectComments(configClass: KClass<*>): Map<String, List<String>> {
-            Logger.debug("[ConfigCommentProcessor.collectComments] For KClass: ${configClass.simpleName}")
             val comments = mutableMapOf<String, List<String>>()
 
             // Iterate over KProperties to correctly find annotations, similar to populateYamlFromInstance
@@ -223,20 +229,28 @@ class ConfigCommentProcessor {
         
         /**
          * Collects comments from a KProperty and its backing Field.
+         * 从 KProperty 和其支持的 Field 收集注释。
+         * 
+         * @param prop The KProperty to collect comments from
+         *             要收集注释的 KProperty
+         * @param field The backing Field of the KProperty
+         *              KProperty 的底层 Field
+         * @param parentPath The parent path for nested properties
+         *                  嵌套属性的父路径
+         * @param comments The mutable map to store collected comments
+         *                可变映射，用于存储收集的注释
+         * @param ownerClass The class of the owner of the KProperty
+         *                   KProperty 的拥有者类
          */
         private fun collectFieldComments(prop: kotlin.reflect.KProperty1<out Any, *>, field: Field, parentPath: String, comments: MutableMap<String, List<String>>, ownerClass: KClass<*>) {
-            Logger.debug("[ConfigCommentProcessor.collectFieldComments] KProperty: ${prop.name}, Field: ${field.name}, ParentPath: '$parentPath' on ownerClass: ${ownerClass.simpleName}")
-
             val configFieldAnnotation = prop.findAnnotation<ConfigField>() 
             val configValueAnnotation = prop.findAnnotation<ConfigValue>()
 
-            Logger.debug("[ConfigCommentProcessor.collectFieldComments] KProperty '${prop.name}', Has@ConfigField: ${configFieldAnnotation != null}, Has@ConfigValue: ${configValueAnnotation != null}")
-
+            // Collect comments from @ConfigField
             if (configFieldAnnotation != null) {
                 val fieldPath = if (parentPath.isEmpty()) configFieldAnnotation.path else "$parentPath.${configFieldAnnotation.path}"
                 if (configFieldAnnotation.comments.isNotEmpty()) {
                     comments[fieldPath] = configFieldAnnotation.comments.toList()
-                    Logger.debug("[ConfigCommentProcessor.collectFieldComments] Collected comments for @ConfigField '$fieldPath': ${configFieldAnnotation.comments.joinToString()}")
                 }
                 try {
                     // For recursion, we need the class of the field's type
@@ -248,16 +262,16 @@ class ConfigCommentProcessor {
                         collectFieldComments(nestedProp, nestedField, fieldPath, comments, fieldTypeKClass)
                     }
                 } catch (_: Exception) {
-                    Logger.warn("[ConfigCommentProcessor.collectFieldComments] Could not reflect on nested fields of ${field.name} (type ${field.type.simpleName})")
+                    Logger.warn("Could not reflect on nested fields of ${field.name} (type ${field.type.simpleName})")
                 }
                 return
             }
             
+            // Collect comments from @ConfigValue
             if (configValueAnnotation != null) {
                 val valuePath = if (parentPath.isEmpty()) configValueAnnotation.path else "$parentPath.${configValueAnnotation.path}"
                 if (configValueAnnotation.comments.isNotEmpty()) {
                     comments[valuePath] = configValueAnnotation.comments.toList()
-                    Logger.debug("[ConfigCommentProcessor.collectFieldComments] Collected comments for @ConfigValue '$valuePath': ${configValueAnnotation.comments.joinToString()}")
                 }
             }
         }

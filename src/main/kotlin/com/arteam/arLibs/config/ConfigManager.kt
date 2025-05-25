@@ -34,6 +34,7 @@ import kotlin.reflect.jvm.jvmErasure
  *
  * ConfigManager 负责使用基于注解的配置系统注册、加载和保存配置文件。
  */
+@Suppress("unused")
 class ConfigManager {
     companion object {
         private val plugin = ArLibs.getInstance()
@@ -44,7 +45,6 @@ class ConfigManager {
         
         /**
          * Registers and loads a configuration class.
-         *
          * 注册并加载配置类。
          *
          * @param configClass The class of the configuration to register
@@ -59,8 +59,6 @@ class ConfigManager {
             val configAnnotation = configClass.findAnnotation<Config>()
                 ?: throw IllegalArgumentException("The class ${configClass.simpleName} is not annotated with @Config")
             
-            Logger.debug("Found @Config annotation: fileName='${configAnnotation.fileName}', filePath='${configAnnotation.filePath}'")
-
             // Create an instance of the configuration class
             val configInstance = try {
                 configClass.java.getDeclaredConstructor().newInstance()
@@ -68,8 +66,6 @@ class ConfigManager {
                 throw IllegalArgumentException("Failed to create an instance of ${configClass.simpleName}. Ensure it has a public no-arg constructor.", e)
             }
             
-            Logger.debug("Created instance of ${configClass.simpleName}: $configInstance")
-
             // Create or get the configuration file path
             val fileName = configAnnotation.fileName
             val filePath = configAnnotation.filePath
@@ -82,25 +78,22 @@ class ConfigManager {
             }
             
             val configFile = File(configDir, "$fileName.yml")
-            Logger.debug("Configuration file path determined: ${configFile.absolutePath}")
             
             // Create parent directories if they don't exist
             if (!configFile.parentFile.exists()) {
                 configFile.parentFile.mkdirs()
-                Logger.debug("Created parent directories for ${configFile.absolutePath}")
             }
             
             // Create the file if it doesn't exist
             if (!configFile.exists()) {
                 try {
                     configFile.createNewFile()
-                    Logger.debug("Created new configuration file: ${configFile.path}")
+                    Logger.debug("Created new configuration file: ${configFile.name}")
                 } catch (e: IOException) {
                     Logger.severe("Failed to create configuration file $fileName.yml: ${e.message}")
                 }
             }
             
-            Logger.debug("Loading YAML from file: ${configFile.path}")
             // Load the YAML configuration
             val yamlConfig = YamlConfiguration.loadConfiguration(configFile)
             
@@ -108,43 +101,38 @@ class ConfigManager {
             registeredConfigs[configClass] = configInstance
             configFiles[configClass] = configFile
             yamlConfigs[configClass] = yamlConfig
-            
-            Logger.debug("Initial YAML content for ${configClass.simpleName}:\n${yamlConfig.saveToString()}")
 
             // Load configuration values into the configInstance and populate yamlConfig with defaults
-            // This now uses Kotlin reflection throughout
             loadValuesFromYaml(configInstance, yamlConfig, "")
             
-            Logger.debug("Populating YAML from instance for ${configClass.simpleName}")
-            // Ensure all values from configInstance (which now has defaults) are set in yamlConfig
-            // This is crucial if loadValues didn't already comprehensively update yamlConfig for all fields
-            // or if yamlConfig was initially empty and some paths weren't explicitly set.
+            // Ensure all values from configInstance are set in yamlConfig
             populateYamlFromInstance(configInstance, yamlConfig, "")
-            Logger.debug("YAML content after populateYamlFromInstance for ${configClass.simpleName}:\n${yamlConfig.saveToString()}")
 
             // Save the configuration with any missing default values and comments
             saveConfig(configClass)
             
+            Logger.debug("Configuration ${configClass.simpleName} registered successfully")
             return configInstance as T
         }
         
         /**
          * Loads configuration values into the configuration object using Kotlin reflection.
          * 将配置值加载到配置对象中 (使用 Kotlin 反射)。
+         * 
+         * @param instance The configuration instance to load values into
+         *                 要加载值的配置实例
+         * @param yamlConfig The YamlConfiguration to load values from
+         *                   要从中加载值的 YamlConfiguration
+         * @param parentPath The parent path for nested properties
+         *                   嵌套属性的父路径
          */
         private fun loadValuesFromYaml(instance: Any, yamlConfig: YamlConfiguration, parentPath: String) {
-            Logger.debug("[loadValuesFromYaml] Instance: ${instance::class.simpleName}, ParentPath: '$parentPath'")
             instance::class.memberProperties.forEach { prop ->
-                // Skip non-mutable properties if we intend to set them, though defaults might still apply.
-                // However, @ConfigValue can be on 'val' if only default is used.
-                // For now, process all member properties.
-                if (prop.javaField == null && prop.getter.findAnnotation<JvmSynthetic>() == null) { // Skip properties without backing fields unless synthetic (like data class componentN)
-                     // Potentially skip static fields more reliably here if needed, KProperty doesn't directly expose 'isStatic' like Java Field.
-                     // But typically, companion object properties are separate.
+                if (prop.javaField == null && prop.getter.findAnnotation<JvmSynthetic>() == null) {
                     return@forEach
                 }
 
-
+                // Load the property value from the YamlConfiguration
                 loadProperty(prop, instance, yamlConfig, parentPath)
             }
         }
@@ -162,32 +150,27 @@ class ConfigManager {
             val configFieldAnnotation = prop.findAnnotation<ConfigField>()
             val configValueAnnotation = prop.findAnnotation<ConfigValue>()
 
-            Logger.debug("[loadProperty] Property: ${prop.name} in Instance: ${ownerInstance::class.simpleName}, ParentPath: '$parentPath', Has@ConfigField: ${configFieldAnnotation != null}, Has@ConfigValue: ${configValueAnnotation != null}")
-
             if (configFieldAnnotation != null) {
                 val currentPath = if (parentPath.isEmpty()) configFieldAnnotation.path else "$parentPath.${configFieldAnnotation.path}"
-                Logger.debug("[loadProperty] @ConfigField: ${prop.name}, Path: $currentPath")
                 
                 val nestedInstance = prop.call(ownerInstance)
                 if (nestedInstance != null) {
                     // Recursively load values for the nested object
                     loadValuesFromYaml(nestedInstance, yamlConfig, currentPath)
                 } else {
-                    Logger.warn("[loadProperty] Nested instance for @ConfigField '${prop.name}' at path '$currentPath' is null. Skipping.")
+                    Logger.warn("Nested instance for @ConfigField '${prop.name}' at path '$currentPath' is null. Skipping.")
                 }
             } else if (configValueAnnotation != null) {
                 val currentPath = if (parentPath.isEmpty()) configValueAnnotation.path else "$parentPath.${configValueAnnotation.path}"
-                Logger.debug("[loadProperty] @ConfigValue: ${prop.name}, Path: $currentPath, Default: '${configValueAnnotation.defaultValue}'")
+
+                // Helper function to determine if property is a List type
+                fun isPropertyAList(kProp: kotlin.reflect.KProperty1<out Any, *>) = kProp.returnType.jvmErasure.isSubclassOf(List::class)
 
                 if (prop !is KMutableProperty<*>) {
-                    Logger.warn("[loadProperty] @ConfigValue found on non-mutable property '${prop.name}' at path '$currentPath'. Only default value can be applied if path is missing in YAML.")
-                    // If not mutable, we can only ensure default is in YAML if missing. We can't set the property itself from YAML.
+                    Logger.warn("@ConfigValue found on non-mutable property '${prop.name}' at path '$currentPath'. Only default value can be applied if path is missing in YAML.")
                     if (!yamlConfig.contains(currentPath) && configValueAnnotation.defaultValue.isNotEmpty()) {
-                        Logger.debug("[loadProperty] Path $currentPath NOT in YAML, property non-mutable. Setting default in YAML: '${configValueAnnotation.defaultValue}'")
-                        // Convert default value based on property type or type hint
-                        val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type)
+                        val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type, yamlConfig, currentPath)
                         yamlConfig.set(currentPath, defaultValue)
-                        Logger.debug("[loadProperty] Set default $currentPath = $defaultValue (type: ${defaultValue::class.simpleName}) in YAML for non-mutable property ${prop.name}")
                     }
                     return // Skip setting for non-mutable properties
                 }
@@ -196,55 +179,69 @@ class ConfigManager {
 
                 if (yamlConfig.contains(currentPath)) {
                     val loadedValue = yamlConfig.get(currentPath)
-                    Logger.debug("[loadProperty] Path $currentPath FOUND in YAML for property ${prop.name}. Raw loaded value: '$loadedValue' (YAML type: ${loadedValue?.let { it::class.simpleName } ?: "null"})")
 
                     if (loadedValue != null) {
                         try {
-                            Logger.debug("[loadProperty] Property ${prop.name} current value in Kotlin object BEFORE setting: '${prop.call(ownerInstance)}'")
-                            
-                            val convertedValue = if (prop.returnType.jvmErasure.java.isAssignableFrom(loadedValue.javaClass)) {
-                                Logger.debug("[loadProperty] Loaded value type (${loadedValue.javaClass.simpleName}) is assignable to property type (${prop.returnType}). Using directly.")
-                                loadedValue
-                            } else {
-                                Logger.debug("[loadProperty] Loaded value type (${loadedValue.javaClass.simpleName}) is NOT assignable to property type (${prop.returnType}). Attempting conversion from string: '$loadedValue'")
-                                convertKPropertyToTargetType(loadedValue.toString(), prop, configValueAnnotation.type)
+                            val convertedValue: Any? = when {
+                                // Case 1: Loaded value is a List and property is a List
+                                loadedValue is List<*> && isPropertyAList(prop) -> {
+                                    val listElementTypeHint = configValueAnnotation.type.lowercase()
+                                    when {
+                                        listElementTypeHint.startsWith("list<") && listElementTypeHint.endsWith(">") -> {
+                                            val elementType = listElementTypeHint.substring(5, listElementTypeHint.length - 1)
+                                            loadedValue.mapNotNull { element ->
+                                                try {
+                                                    convertSingleElementToType(element, elementType, prop.name)
+                                                } catch (_: Exception) {
+                                                    Logger.warn("Failed to convert list element '$element' to '$elementType' for property ${prop.name}. Skipping element.")
+                                                    null
+                                                }
+                                            }
+                                        }
+                                        listElementTypeHint == "list" || listElementTypeHint == "stringlist" -> {
+                                            loadedValue.map { it?.toString() }
+                                        }
+                                        else -> {
+                                            loadedValue // Pass as is
+                                        }
+                                    }
+                                }
+                                // Case 2: Loaded value type is directly assignable to property type
+                                prop.returnType.jvmErasure.java.isAssignableFrom(loadedValue.javaClass) -> {
+                                    loadedValue
+                                }
+                                // Case 3: Fallback to conversion from string
+                                else -> {
+                                    convertKPropertyToTargetType(loadedValue.toString(), prop, configValueAnnotation.type, yamlConfig, currentPath)
+                                }
                             }
-                            
-                            Logger.debug("[loadProperty] Converted loaded value for $currentPath: '$convertedValue' (Kotlin type: ${convertedValue::class.simpleName})")
 
                             // Apply validators if specified
                             if (configValueAnnotation.validators.isNotEmpty()) {
                                 for (validatorName in configValueAnnotation.validators) {
-                                    Logger.debug("[loadProperty] Validating $currentPath (value: $convertedValue) with $validatorName")
-                                    validateValue(convertedValue, currentPath, validatorName) // Assuming validateValue is compatible
+                                    if (convertedValue != null) {
+                                        validateValue(convertedValue, currentPath, validatorName)
+                                    }
                                 }
                             }
                             
                             mutableProp.setter.call(ownerInstance, convertedValue)
-                            Logger.debug("[loadProperty] SUCCESSFULLY set property ${prop.name} in ${ownerInstance::class.simpleName} to loaded/converted value: '$convertedValue' (Kotlin object property value now: '${prop.call(ownerInstance)}')")
                         } catch (e: Exception) {
-                            Logger.severe("Failed to set loaded value for property ${prop.name} at $currentPath (raw value: '$loadedValue'): ${e.message}")
-                            e.printStackTrace() // Add stack trace for better debugging
+                            Logger.severe("Failed to set loaded value for property ${prop.name} at $currentPath: ${e.message}")
                         }
                     } else {
-                        Logger.warn("[loadProperty] Path $currentPath exists in YAML but loaded value is null. Property ${prop.name} in ${ownerInstance::class.simpleName} will retain its current value or default if applicable.")
-                        // Option: if null and prop is nullable, set null. If not nullable, try default.
-                        // For now, let's mimic old behavior: do nothing, retain current value (which might be initial default).
-                        // If we want to apply default here if YAML has explicit null:
                         if (configValueAnnotation.defaultValue.isNotEmpty()) {
-                             Logger.debug("[loadProperty] Path $currentPath is null in YAML, attempting to set default '${configValueAnnotation.defaultValue}' for property ${prop.name}")
-                             val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type)
+                             val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type, yamlConfig, currentPath)
                              mutableProp.setter.call(ownerInstance, defaultValue)
-                             yamlConfig.set(currentPath, defaultValue) // Also ensure default is back in YAML if it was explicit null
-                             Logger.debug("[loadProperty] Set default $currentPath = $defaultValue to property and YAML due to null in YAML for ${prop.name}")
+                             yamlConfig.set(currentPath, defaultValue) 
+                        } else if (prop.returnType.isMarkedNullable) {
+                            mutableProp.setter.call(ownerInstance, null)
                         }
                     }
                 } else if (configValueAnnotation.defaultValue.isNotEmpty()) {
-                    Logger.debug("[loadProperty] Path $currentPath NOT in YAML, using default: '${configValueAnnotation.defaultValue}' for property ${prop.name}")
-                    val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type)
+                    val defaultValue = convertKPropertyToTargetType(configValueAnnotation.defaultValue, prop, configValueAnnotation.type, yamlConfig, currentPath)
                     mutableProp.setter.call(ownerInstance, defaultValue)
                     yamlConfig.set(currentPath, defaultValue) 
-                    Logger.debug("[loadProperty] Set default $currentPath = $defaultValue (type: ${defaultValue::class.simpleName}) in instance AND YAML for property ${prop.name}")
                 }
             }
         }
@@ -252,41 +249,35 @@ class ConfigManager {
         /**
          * Populates the YamlConfiguration from the config instance.
          * This ensures all fields from the config object are represented in the YamlConfiguration.
+         * 从配置实例填充 YamlConfiguration。
+         * 确保配置对象中的所有字段都表示在 YamlConfiguration 中。
+         * 
+         * @param instance The configuration instance to populate from
+         *                 要从中填充的配置实例
+         * @param yamlConfig The YamlConfiguration to populate
+         *                   要填充的 YamlConfiguration
+         * @param parentPath The parent path for nested properties
+         *                   嵌套属性的父路径
          */
         private fun populateYamlFromInstance(instance: Any, yamlConfig: YamlConfiguration, parentPath: String) {
-            Logger.debug("[populateYamlFromInstance] Class: ${instance::class.simpleName}, ParentPath: '$parentPath'")
-            
-            // Use Kotlin reflection to find annotated properties
             instance::class.memberProperties.forEach { prop ->
-                // Skip properties without backing fields unless synthetic (like data class componentN)
-                // This check helps avoid issues with extension properties or properties without actual storage
                 if (prop.javaField == null && prop.getter.findAnnotation<JvmSynthetic>() == null) {
-                    // Logger.debug("[populateYamlFromInstance] Skipping property ${prop.name} as it has no backing field or is not synthetic.")
                     return@forEach
                 }
 
                 // Ensure property is accessible if it has a Java field counterpart
                 prop.javaField?.isAccessible = true
                 
-                // // Skip static fields more reliably (though KProperty doesn't directly expose this)
-                // // Typically companion object properties are handled differently or excluded by context
-                // if (Modifier.isStatic(field.modifiers)) { // This was for Java Field
-                //     return@forEach 
-                // }
-
                 // Try to find annotations using KProperty
                 val configFieldAnnotation = prop.findAnnotation<ConfigField>()
                 val configValueAnnotation = prop.findAnnotation<ConfigValue>()
 
-                Logger.debug("[populateYamlFromInstance] Processing KProperty: ${prop.name}, Has@ConfigField: ${configFieldAnnotation != null}, Has@ConfigValue: ${configValueAnnotation != null}")
-
+                // Process the KProperty based on its annotations
                 when {
                     configFieldAnnotation != null -> {
                         val currentPath = if (parentPath.isEmpty()) configFieldAnnotation.path else "$parentPath.${configFieldAnnotation.path}"
-                        Logger.debug("[populateYamlFromInstance] @ConfigField: KProperty=${prop.name}, path=$currentPath")
                         if (!yamlConfig.isConfigurationSection(currentPath)) {
                             yamlConfig.createSection(currentPath)
-                            Logger.debug("[populateYamlFromInstance] Created section: $currentPath")
                         }
                         val fieldValue = prop.call(instance) // Use KProperty to get value
                         if (fieldValue != null) {
@@ -296,7 +287,6 @@ class ConfigManager {
                     configValueAnnotation != null -> {
                         val currentPath = if (parentPath.isEmpty()) configValueAnnotation.path else "$parentPath.${configValueAnnotation.path}"
                         val value = prop.call(instance) // Use KProperty to get value
-                        Logger.debug("[populateYamlFromInstance] @ConfigValue: KProperty=${prop.name}, path=$currentPath, value=$value, type=${value?.let { it::class.simpleName } ?: "null"}")
                         yamlConfig.set(currentPath, value)
                     }
                 }
@@ -306,12 +296,17 @@ class ConfigManager {
         /**
          * Validates a configuration value using the specified validator.
          * 使用指定的验证器验证配置值。
+         * 
+         * @param value The value to validate
+         *              要验证的值
+         * @param path The path in the configuration
+         *             配置中的路径
+         * @param validatorName The name of the validator to use
+         *                      要使用的验证器名称
          */
         @Suppress("UNCHECKED_CAST")
         private fun validateValue(value: Any, path: String, validatorName: String) {
             try {
-                Logger.debug("[validateValue] Value: '$value' at Path: '$path' with Validator: '$validatorName'")
-                
                 val validator = validatorCache.getOrPut(validatorName) {
                     if ("#" in validatorName) {
                         // Factory method syntax: com.example.Factory#methodName(arg1,arg2)
@@ -406,22 +401,32 @@ class ConfigManager {
                     }
                 }
 
-                val typedValidator = validator as ConfigValidator<Any> // This cast is potentially unsafe if 'value' type doesn't match validator's generic type
-                val validationResult = typedValidator.validate(value, path)
+                // Validate the value using the validator
+                val validationResult = validator.validate(value, path)
                 if (!validationResult.valid) {
                     Logger.warn("Validation failed for value at $path ('$value'): ${validationResult.errorMessage}")
-                } else {
-                    Logger.debug("Validation successful for $path ('$value') with validator $validatorName")
                 }
             } catch (e: Exception) {
                 Logger.severe("Failed to process validator $validatorName for path $path: ${e.message}")
-                e.printStackTrace() // Print stack trace for better debugging of validator loading/parsing issues
             }
         }
 
         /**
          * Converts a string argument to the specified KClass type.
          * Used for parsing arguments for validator factory methods.
+         * 将字符串参数转换为指定的 KClass 类型。
+         * 被用于验证器工厂方法的参数解析。
+         * 
+         * @param argString The string argument to convert
+         *                  要转换的字符串参数
+         * @param targetType The KClass type to convert to
+         *                   要转换的目标类型
+         * @param validatorNameHint The name of the validator factory method for error reporting
+         *                          用于错误报告的验证器工厂方法名称
+         * @return The converted value
+         *         转换后的值
+         * @throws IllegalArgumentException if the argument cannot be converted
+         *         如果参数不能转换则抛出 IllegalArgumentException
          */
         private fun convertStringArgToType(argString: String, targetType: KClass<*>, validatorNameHint: String): Any {
             return try {
@@ -444,43 +449,140 @@ class ConfigManager {
         /**
          * Converts a string value to the target type specified by a KProperty.
          * If a typeHint is provided, it takes precedence.
+         * 将字符串值转换为 KProperty 指定的目标类型。
+         * 如果提供了 typeHint，则优先使用它。
+         * 
+         * @param value The string value to convert
+         *              要转换的字符串值
+         * @param prop The KProperty to convert to
+         *             要转换的 KProperty
+         * @param typeHint The type hint to use for conversion
+         *                 要使用的类型提示
+         * @param yamlConfig The YamlConfiguration to load values from
+         *                    要从中加载值的 YamlConfiguration
+         * @param currentPath The current path in the configuration
+         *                    配置中的当前路径
+         * @return The converted value
+         *         转换后的值
          */
-        private fun convertKPropertyToTargetType(value: String, prop: kotlin.reflect.KProperty1<out Any, *>, typeHint: String): Any {
-            val targetType = prop.returnType.jvmErasure.java
+        private fun convertKPropertyToTargetType(value: String, prop: kotlin.reflect.KProperty1<out Any, *>, typeHint: String, yamlConfig: YamlConfiguration, currentPath: String): Any? {
+            val targetPropType = prop.returnType
+            val targetErasure = targetPropType.jvmErasure.java
+            
+            // Priority to typeHint
             if (typeHint.isNotEmpty()) {
-                return when (typeHint.lowercase()) {
-                    "string" -> value
-                    "int", "integer" -> value.toInt()
-                    "long" -> value.toLong()
-                    "double" -> value.toDouble()
-                    "float" -> value.toFloat()
-                    "boolean", "bool" -> value.toBoolean()
-                    // For lists, assume List<String> if only "list" or "stringlist" is given.
-                    // More specific list types (e.g., List<Int>) would need more robust parsing or a different hint.
-                    "list", "stringlist" -> value.split(",").map { it.trim() }
-                    else -> {
-                        Logger.warn("Unknown type hint '$typeHint' for property ${prop.name}. Falling back to property type.")
-                        convertStringToType(value, targetType)
+                val lowerHint = typeHint.lowercase()
+                try {
+                    return when {
+                        lowerHint == "string" -> value
+                        lowerHint == "int" || lowerHint == "integer" -> value.toInt()
+                        lowerHint == "long" -> value.toLong()
+                        lowerHint == "double" -> value.toDouble()
+                        lowerHint == "float" -> value.toFloat()
+                        lowerHint == "boolean" || lowerHint == "bool" -> value.toBoolean()
+                        lowerHint.startsWith("list<") && lowerHint.endsWith(">") -> {
+                            val elementType = lowerHint.substring(5, lowerHint.length - 1)
+                            if (value.isBlank()) emptyList<Any?>() else value.split(",").mapNotNull { item ->
+                                convertSingleElementToType(item.trim(), elementType, prop.name)
+                            }
+                        }
+                        lowerHint == "list" || lowerHint == "stringlist" -> {
+                            if (value.isBlank()) emptyList() else value.split(",").map { it.trim() }
+                        }
+                        else -> {
+                            convertStringToTypeErasure(value, targetErasure, prop.name)
+                        }
                     }
+                } catch (_: Exception) {
+                    return try { convertStringToTypeErasure(value, targetErasure, prop.name) } catch (_: Exception) { null }
                 }
             }
-            return convertStringToType(value, targetType)
+            
+            // If no typeHint, use property's type erasure
+            return convertStringToTypeErasure(value, targetErasure, prop.name)
+        }
+
+        /**
+         * Converts a single element (typically string or from a loaded list) to a target type string.
+         * Used for list elements.
+         * 将单个元素（通常是字符串或从加载的列表中获取的）转换为目标类型字符串。
+         * 用于列表元素。
+         * 
+         * @param element The element to convert
+         *               要转换的元素
+         * @param targetTypeString The target type string
+         *                        目标类型字符串
+         * @param propertyNameForLog The property name for logging
+         *                         用于日志记录的属性名称
+         * @return The converted value
+         *         转换后的值
+         */
+        private fun convertSingleElementToType(element: Any?, targetTypeString: String, propertyNameForLog: String): Any? {
+            if (element == null) return null
+            val valueStr = element.toString().trim() // Trim whitespace for robust parsing
+
+            return try {
+                when (targetTypeString.lowercase()) {
+                    "string" -> valueStr
+                    "int", "integer" -> valueStr.toInt()
+                    "long" -> valueStr.toLong()
+                    "double" -> valueStr.toDouble()
+                    "float" -> valueStr.toFloat()
+                    "boolean", "bool" -> valueStr.toBoolean() // "true" (any case) -> true, "false" (any case) -> false, others -> false
+                    else -> {
+                        Logger.warn("Unsupported element type '$targetTypeString' for property '$propertyNameForLog'. Returning string form.")
+                        valueStr // Fallback to string if type is unknown
+                    }
+                }
+            } catch (e: NumberFormatException) {
+                Logger.severe("Failed to convert element '$valueStr' to numeric type '$targetTypeString' for property '$propertyNameForLog': ${e.message}")
+                null // Or throw, or return original element
+            } catch (e: IllegalArgumentException) { // For things like toBooleanStrict if used
+                Logger.severe("Failed to convert element '$valueStr' to type '$targetTypeString' for property '$propertyNameForLog': ${e.message}")
+                null
+            }
         }
         
         /**
-         * Converts a string to the specified type.
-         * 将字符串转换为指定的类型。
+         * Converts a string to the specified erased type.
+         * 将字符串转换为指定的擦除类型。
+         * 
+         * @param value The string value to convert
+         *              要转换的字符串值
+         * @param type The Class type to convert to
+         *             要转换的目标类型
+         * @param propertyNameForLog The property name for logging
+         *                           用于日志记录的属性名称
+         * @return The converted value
+         *         转换后的值
          */
-        private fun convertStringToType(value: String, type: Class<*>): Any {
-            return when (type) {
-                String::class.java -> value
-                Int::class.java, Integer::class.java -> value.toInt()
-                Long::class.java, java.lang.Long::class.java -> value.toLong()
-                Double::class.java, java.lang.Double::class.java -> value.toDouble()
-                Float::class.java, java.lang.Float::class.java -> value.toFloat()
-                Boolean::class.java, java.lang.Boolean::class.java -> value.toBoolean()
-                List::class.java, java.util.List::class.java -> value.split(",").map { it.trim() }
-                else -> value
+        private fun convertStringToTypeErasure(value: String, type: Class<*>, propertyNameForLog: String): Any? {
+            return try {
+                when (type) {
+                    String::class.java -> value
+                    Int::class.java, Integer::class.java -> value.toInt()
+                    Long::class.java, java.lang.Long::class.java -> value.toLong()
+                    Double::class.java, java.lang.Double::class.java -> value.toDouble()
+                    Float::class.java, java.lang.Float::class.java -> value.toFloat()
+                    Boolean::class.java, java.lang.Boolean::class.java -> value.toBoolean()
+                    List::class.java, java.util.List::class.java -> {
+                        // This case is for when the property is List<Something> and input is a String (e.g. from default value)
+                        // It assumes a comma-separated string for the list.
+                        // If typeHint was "list<int>", convertKPropertyToTargetType handles element conversion.
+                        // If typeHint was "list" or "stringlist", it also handles it.
+                        // This is a fallback if no specific list type hint was given but property is List. Assume List<String>.
+                        if (value.isBlank()) emptyList() else value.split(",").map { it.trim() }
+                    }
+                    else -> {
+                        value // Fallback for other types not explicitly handled
+                    }
+                }
+            } catch (e: NumberFormatException) {
+                Logger.severe("Error converting string '$value' to numeric erased type ${type.simpleName} for $propertyNameForLog: ${e.message}")
+                null
+            } catch (e: Exception) {
+                 Logger.severe("Error converting string '$value' to erased type ${type.simpleName} for $propertyNameForLog: ${e.message}")
+                null
             }
         }
         
@@ -494,12 +596,11 @@ class ConfigManager {
         fun saveConfig(configClass: KClass<*>) {
             val configFile = configFiles[configClass] ?: return
             val yamlConfig = yamlConfigs[configClass] ?: return
-            Logger.debug("[saveConfig] For KClass: ${configClass.simpleName} to File: ${configFile.path}")
-            Logger.debug("[saveConfig] YAML content to be saved for ${configClass.simpleName}:\n${yamlConfig.saveToString()}")
             
             try {
                 // Use the comment processor to save with comments
                 ConfigCommentProcessor.saveWithComments(configClass, configFile, yamlConfig)
+                Logger.debug("Configuration ${configClass.simpleName} saved successfully")
             } catch (e: IOException) {
                 Logger.severe("Failed to save configuration file ${configFile.name}: ${e.message}")
             }
@@ -515,7 +616,6 @@ class ConfigManager {
         fun reloadConfig(configClass: KClass<*>) {
             val configFile = configFiles[configClass] ?: return
             val configInstance = registeredConfigs[configClass] ?: return
-            Logger.debug("[reloadConfig] For KClass: ${configClass.simpleName} from File: ${configFile.path}")
             
             // Reload the YAML configuration
             val yamlConfig = YamlConfiguration.loadConfiguration(configFile)
@@ -523,6 +623,7 @@ class ConfigManager {
             
             // Reload configuration values using the new KProperty-based loading
             loadValuesFromYaml(configInstance, yamlConfig, "")
+            Logger.debug("Configuration ${configClass.simpleName} reloaded successfully")
         }
         
         /**
@@ -539,4 +640,4 @@ class ConfigManager {
             return registeredConfigs[configClass] as? T
         }
     }
-} 
+}
