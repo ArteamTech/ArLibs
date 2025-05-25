@@ -132,7 +132,7 @@ object Logger {
      */
     private fun log(plugin: Plugin, level: Level, message: String, forceSync: Boolean = false) {
         val logTask = {
-            // First, convert & to § for Minecraft's color format
+            // First, convert `&` to `§` for Minecraft's color format
             val processedMessage = ColorUtil.process(message)
             
             // Format the message with plugin name

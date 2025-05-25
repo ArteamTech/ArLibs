@@ -153,7 +153,7 @@ class ConfigCommentProcessor {
                                 currentPath = if (lastDotCurrent != -1) currentPath.substring(0, lastDotCurrent) + ".$key" else key
 
                             } else {
-                                // Same level , just update the last key
+                                // Same level, just update the last key
                                 val lastDot = currentPath.lastIndexOf('.')
                                 currentPath = if (lastDot != -1) {
                                     currentPath.substring(0, lastDot) + ".$key"

@@ -1,6 +1,7 @@
 /**
  * Defines a specific configuration value in a configuration file or section.
  * Fields annotated with @ConfigValue will be mapped to individual key-value pairs.
+ *
  * 定义配置文件或部分中的特定配置值。使用 @ConfigValue 注解的字段将映射到单个键值对。
  *
  * Parameters:

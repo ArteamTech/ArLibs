@@ -30,7 +30,7 @@ import kotlin.reflect.jvm.jvmErasure
 
 /**
  * The ConfigManager handles registration, loading, and saving of configuration files
- * using annotation-based configuration system.
+ * using an annotation-based configuration system.
  *
  * ConfigManager 负责使用基于注解的配置系统注册、加载和保存配置文件。
  */
@@ -206,7 +206,7 @@ class ConfigManager {
                                         }
                                     }
                                 }
-                                // Case 2: Loaded value type is directly assignable to property type
+                                // Case 2: The loaded value type is directly assignable to the property type
                                 prop.returnType.jvmErasure.java.isAssignableFrom(loadedValue.javaClass) -> {
                                     loadedValue
                                 }
@@ -331,7 +331,7 @@ class ConfigManager {
                         val targetInstance: Any? = targetKotlinClass.objectInstance // For Kotlin objects or companion objects
 
                         val functionsToSearch = if (targetInstance != null) {
-                            targetKotlinClass.memberFunctions // Functions on the object instance (e.g. companion)
+                            targetKotlinClass.memberFunctions // Functions on the object instance (e.g., companion)
                         } else {
                             targetKotlinClass.staticFunctions // Static functions (Java style)
                         }
@@ -566,15 +566,17 @@ class ConfigManager {
                     Float::class.java, java.lang.Float::class.java -> value.toFloat()
                     Boolean::class.java, java.lang.Boolean::class.java -> value.toBoolean()
                     List::class.java, java.util.List::class.java -> {
-                        // This case is for when the property is List<Something> and input is a String (e.g. from default value)
+                        // This case is for when the property is List<Something> and input is a String
+                        // (e.g., from default value)
                         // It assumes a comma-separated string for the list.
                         // If typeHint was "list<int>", convertKPropertyToTargetType handles element conversion.
                         // If typeHint was "list" or "stringlist", it also handles it.
-                        // This is a fallback if no specific list type hint was given but property is List. Assume List<String>.
+                        // This is a fallback if no specific list type hint was given but property is Listed.
+                        // Assume List<String>.
                         if (value.isBlank()) emptyList() else value.split(",").map { it.trim() }
                     }
                     else -> {
-                        value // Fallback for other types not explicitly handled
+                        value // Fallback for other types is not explicitly handled
                     }
                 }
             } catch (e: NumberFormatException) {
@@ -607,7 +609,7 @@ class ConfigManager {
         }
         
         /**
-         * Reloads a configuration from file.
+         * Reloads a configuration from the file.
          * 从文件重新加载配置。
          *
          * @param configClass The class of the configuration to reload

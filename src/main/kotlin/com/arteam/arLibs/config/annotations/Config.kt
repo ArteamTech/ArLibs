@@ -1,6 +1,7 @@
 /**
  * Marks a class as a configuration file. Classes annotated with @Config will be processed
  * by the configuration system to load and save configuration values.
+ *
  * 标记一个类作为配置文件。被 @Config 注解的类将由配置系统处理，用于加载和保存配置值。
  *
  * Parameters:

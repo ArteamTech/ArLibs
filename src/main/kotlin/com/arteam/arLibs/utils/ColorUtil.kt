@@ -26,7 +26,7 @@ object ColorUtil {
     private val RAINBOW_PATTERN = Pattern.compile("<(?<type>rainbow|r)(#(?<speed>\\d+))?(:(?<saturation>\\d*\\.?\\d+))?(:(?<brightness>\\d*\\.?\\d+))?(:(?<loop>l|L|loop))?>")
 
     /**
-     * Translates color codes starting with & to the Minecraft color code character (§).
+     * Translates color codes starting with `&` to the Minecraft color code character (§).
      * 将以 & 开头的颜色代码转换为 Minecraft 颜色代码字符 (§)。
      *
      * @param text The text to translate color codes in.

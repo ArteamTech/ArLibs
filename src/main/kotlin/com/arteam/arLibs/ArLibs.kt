@@ -1,7 +1,6 @@
 /**
  * Main class for the ArLibs plugin.
  * This class initializes the library components and provides core functionality.
- *
  * ArLibs插件的主类。
  * 该类初始化库组件并提供核心功能。
  *
@@ -11,6 +10,8 @@
  */
 package com.arteam.arLibs
 
+import com.arteam.arLibs.command.ArLibsCommand
+import com.arteam.arLibs.command.CommandManager
 import com.arteam.arLibs.config.ConfigManager
 import com.arteam.arLibs.config.CoreConfig
 import com.arteam.arLibs.utils.Logger
@@ -69,12 +70,26 @@ class ArLibs : JavaPlugin() {
         // Initialize other configurations if needed
         // TODO: Add other configuration registrations here
         
+        // Initialize command system
+        // Command system is ready for other plugins to use
+        Logger.info("Command system initialized and ready for registration")
+        
+        // Register ArLibs main command
+        if (CommandManager.registerCommand(this, ArLibsCommand::class)) {
+            Logger.info("ArLibs main command registered successfully")
+        } else {
+            Logger.warn("Failed to register ArLibs main command")
+        }
+        
         Logger.info("Plugin has been enabled successfully!")
     }
 
     override fun onDisable() {
         // Log plugin shutdown
         Logger.info("Plugin is shutting down...")
+        
+        // Unregister all commands registered by this plugin
+        CommandManager.unregisterCommands(this)
         
         // Save all configurations before shutdown
         try {
