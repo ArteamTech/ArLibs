@@ -1,6 +1,7 @@
 /**
  * Main class for the ArLibs plugin.
  * This class initializes the library components and provides core functionality.
+ *
  * ArLibs插件的主类。
  * 该类初始化库组件并提供核心功能。
  *

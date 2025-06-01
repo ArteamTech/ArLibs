@@ -86,6 +86,7 @@ class ArLibsCommand : BaseCommand() {
             sendMessage(context, "&e/arlibs reload &7- Reload ArLibs configuration")
             sendMessage(context, "&e/arlibs debug &7- Toggle debug mode")
             sendMessage(context, "&e/arlibs version &7- Show version information")
+            sendMessage(context, "&e/arlibs action <type> [args] &7- Test action system")
             sendMessage(context, "")
             sendMessage(context, "&7Use &e/arlibs help <command> &7for specific help")
         } else {
@@ -116,6 +117,20 @@ class ArLibsCommand : BaseCommand() {
                     sendMessage(context, "&7Toggles debug mode on/off")
                     sendMessage(context, "&7When enabled, shows detailed logging information")
                     sendMessage(context, "&7Useful for troubleshooting issues")
+                }
+                "action" -> {
+                    sendMessage(context, "&6Help: &e/arlibs action <type> [args]")
+                    sendMessage(context, "&7Tests the action system functionality")
+                    sendMessage(context, "&7Available action types:")
+                    sendMessage(context, "&7• tell - Send text message")
+                    sendMessage(context, "&7• sound - Play sound effect")
+                    sendMessage(context, "&7• title - Send title with subtitle")
+                    sendMessage(context, "&7• actionbar - Send action bar message")
+                    sendMessage(context, "&7• command - Execute command as player")
+                    sendMessage(context, "&7• console - Execute command as console")
+                    sendMessage(context, "&7• delay - Add delay in ticks")
+                    sendMessage(context, "&7• multi - Execute multiple actions")
+                    sendMessage(context, "&7Use &e/arlibs action help &7for detailed examples")
                 }
                 else -> {
                     sendError(context, "Unknown command: $subCommand")
@@ -361,12 +376,185 @@ class ArLibsCommand : BaseCommand() {
     }
 
     /**
+     * Action subcommand - test action system functionality.
+     * 动作子命令 - 测试动作系统功能。
+     */
+    @SubCommand(
+        name = "action",
+        aliases = ["act", "test"],
+        description = "Test action system functionality",
+        usage = "/arlibs action <type> [args...]",
+        minArgs = 1,
+        order = 7
+    )
+    @Permission("arlibs.command.action", defaultValue = PermissionDefault.OP)
+    fun actionCommand(context: CommandContext): CommandResult {
+        if (context.sender !is org.bukkit.entity.Player) {
+            sendError(context, "This command can only be used by players")
+            return CommandResult.ERROR
+        }
+        
+        val player = context.sender as org.bukkit.entity.Player
+        val actionType = context.args[0].lowercase()
+        
+        when (actionType) {
+            "help", "list" -> {
+                sendMessage(context, "&6=== &eAction System Help &6===")
+                sendMessage(context, "&7Available action types:")
+                sendMessage(context, "")
+                
+                val actionHelp = com.arteam.arLibs.action.ActionAPI.getActionHelp()
+                for ((type, description) in actionHelp) {
+                    sendMessage(context, "&e$description")
+                }
+                
+                sendMessage(context, "")
+                sendMessage(context, "&7Examples:")
+                sendMessage(context, "&e/arlibs action tell &aHello World!")
+                sendMessage(context, "&e/arlibs action sound ENTITY_EXPERIENCE_ORB_PICKUP-1.0-1.0")
+                sendMessage(context, "&e/arlibs action title `&6Welcome` `&7to the server` 10 70 20")
+                sendMessage(context, "&e/arlibs action actionbar &bAction bar message")
+                sendMessage(context, "&e/arlibs action command help")
+                sendMessage(context, "&e/arlibs action console say Hello from console!")
+                sendMessage(context, "&e/arlibs action delay 20")
+                sendMessage(context, "&e/arlibs action multi - Execute multiple actions")
+            }
+            
+            "tell" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action tell <message>")
+                    return CommandResult.ERROR
+                }
+                val message = context.args.drop(1).joinToString(" ")
+                val actionString = "tell: $message"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed tell action")
+            }
+            
+            "sound" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action sound <sound>[-volume][-pitch]")
+                    return CommandResult.ERROR
+                }
+                
+                val soundArg = context.args[1]
+                if (soundArg.equals("help", ignoreCase = true)) {
+                    sendMessage(context, "&6=== &eAvailable Sounds &6===")
+                    sendMessage(context, "&7Common sounds:")
+                    
+                    val commonSounds = com.arteam.arLibs.action.actions.SoundAction.getCommonSounds()
+                    for (sound in commonSounds) {
+                        sendMessage(context, "&e$sound")
+                    }
+                    
+                    sendMessage(context, "")
+                    sendMessage(context, "&7Format: &esound-volume-pitch")
+                    sendMessage(context, "&7Example: &eENTITY_EXPERIENCE_ORB_PICKUP-1.0-1.0")
+                    sendMessage(context, "&7Volume range: &e0.0-10.0 &7(default: 1.0)")
+                    sendMessage(context, "&7Pitch range: &e0.5-2.0 &7(default: 1.0)")
+                    return CommandResult.SUCCESS
+                }
+                
+                val actionString = "sound: $soundArg"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed sound action")
+            }
+            
+            "title" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action title `<title>` `<subtitle>` [fadeIn] [stay] [fadeOut]")
+                    return CommandResult.ERROR
+                }
+                val titleArgs = context.args.drop(1).joinToString(" ")
+                val actionString = "title: $titleArgs"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed title action")
+            }
+            
+            "actionbar" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action actionbar <message>")
+                    return CommandResult.ERROR
+                }
+                val message = context.args.drop(1).joinToString(" ")
+                val actionString = "actionbar: $message"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed actionbar action")
+            }
+            
+            "command" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action command <command>")
+                    return CommandResult.ERROR
+                }
+                val command = context.args.drop(1).joinToString(" ")
+                val actionString = "command: $command"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed command action")
+            }
+            
+            "console" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action console <command>")
+                    return CommandResult.ERROR
+                }
+                val command = context.args.drop(1).joinToString(" ")
+                val actionString = "console: $command"
+                
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed console action")
+            }
+            
+            "delay" -> {
+                if (context.args.size < 2) {
+                    sendError(context, "Usage: /arlibs action delay <ticks>")
+                    return CommandResult.ERROR
+                }
+                val ticks = context.args[1]
+                val actionString = "delay: $ticks"
+                
+                sendMessage(context, "&7Starting delay action...")
+                com.arteam.arLibs.action.ActionAPI.executeAction(player, actionString)
+                sendSuccess(context, "Executed delay action ($ticks ticks)")
+            }
+            
+            "multi" -> {
+                sendMessage(context, "&7Executing multiple actions...")
+                val actions = listOf(
+                    "tell: &6Testing multiple actions!",
+                    "sound: ENTITY_EXPERIENCE_ORB_PICKUP-1.0-1.0",
+                    "delay: 20",
+                    "title: `&aSuccess!` `&7Multiple actions work` 10 40 10",
+                    "delay: 40",
+                    "actionbar: &bAll actions completed!"
+                )
+                
+                com.arteam.arLibs.action.ActionAPI.executeActions(player, actions)
+                sendSuccess(context, "Started multi-action sequence")
+            }
+            
+            else -> {
+                sendError(context, "Unknown action type: $actionType")
+                sendMessage(context, "&7Use &e/arlibs action help &7for available actions")
+                return CommandResult.ERROR
+            }
+        }
+        
+        return CommandResult.SUCCESS
+    }
+
+    /**
      * Tab completion for help subcommand.
      * 帮助子命令的Tab补全。
      */
     @TabComplete(subCommand = "help", argument = 0)
     fun helpTabComplete(context: CommandContext): List<String> {
-        return listOf("info", "commands", "reload", "debug", "version")
+        return listOf("info", "commands", "reload", "debug", "version", "action")
     }
 
     /**
@@ -389,12 +577,21 @@ class ArLibsCommand : BaseCommand() {
     }
 
     /**
+     * Tab completion for action subcommand.
+     * 动作子命令的Tab补全。
+     */
+    @TabComplete(subCommand = "action", argument = 0)
+    fun actionTabComplete(context: CommandContext): List<String> {
+        return listOf("help", "tell", "sound", "title", "actionbar", "command", "console", "delay", "multi")
+    }
+
+    /**
      * Global tab completion for the main command.
      * 主命令的全局Tab补全。
      */
     @TabComplete(argument = 0, priority = 1)
     fun globalTabComplete(context: CommandContext): List<String> {
-        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version")
+        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action")
         val input = context.args.lastOrNull() ?: ""
         return subCommands.filter { it.startsWith(input, ignoreCase = true) }
     }
@@ -411,7 +608,7 @@ class ArLibsCommand : BaseCommand() {
             "help" -> {
                 // For help subcommand, suggest available commands to get help for
                 if (context.args.isEmpty()) {
-                    completions.addAll(listOf("info", "commands", "reload", "debug", "version"))
+                    completions.addAll(listOf("info", "commands", "reload", "debug", "version", "action"))
                 }
             }
             "commands" -> {
@@ -433,10 +630,16 @@ class ArLibsCommand : BaseCommand() {
             "debug", "reload", "version", "info" -> {
                 // These commands don't take arguments, so no completions
             }
+            "action" -> {
+                // For action subcommand, suggest available action types
+                if (context.args.isEmpty()) {
+                    completions.addAll(listOf("help", "tell", "sound", "title", "actionbar", "command", "console", "delay", "multi"))
+                }
+            }
             else -> {
                 // For main command (no subcommand), suggest subcommands
                 if (context.args.isEmpty()) {
-                    completions.addAll(listOf("help", "info", "commands", "reload", "debug", "version"))
+                    completions.addAll(listOf("help", "info", "commands", "reload", "debug", "version", "action"))
                 }
             }
         }

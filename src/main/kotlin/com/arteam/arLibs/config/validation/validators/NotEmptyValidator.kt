@@ -1,6 +1,5 @@
 /**
  * Validates that a string or collection is not empty.
- *
  * 验证字符串或集合是否非空。
  *
  * @author ArteamTech

@@ -1,6 +1,5 @@
 /**
  * Validates that a string value matches a specified regex pattern.
- *
  * 验证字符串值是否匹配指定的正则表达式模式。
  *
  * @author ArteamTech
