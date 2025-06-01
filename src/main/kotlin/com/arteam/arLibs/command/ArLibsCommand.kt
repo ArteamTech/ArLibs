@@ -25,8 +25,7 @@ import org.bukkit.Bukkit
 @Command(
     name = "arlibs",
     description = "ArLibs main command - A powerful library for Bukkit plugins",
-    usage = "/arlibs <subcommand>",
-    permission = "arlibs.command"
+    usage = "/arlibs <subcommand>"
 )
 class ArLibsCommand : BaseCommand() {
 
@@ -39,23 +38,24 @@ class ArLibsCommand : BaseCommand() {
         val version = plugin.pluginMeta.version
         val authors = plugin.pluginMeta.authors.joinToString(", ")
         
-        sendMessage(context, "")
-        sendMessage(context, "&6╔═════════════════════════════════╗")
-        sendMessage(context, "&6║        &eArLibs Framework &bv$version        &6║")
-        sendMessage(context, "&6╠═════════════════════════════════╣")
-        sendMessage(context, "&6║ &7Author(s): &e$authors")
-        sendMessage(context, "&6║ &7A powerful library for Bukkit plugins")
-        sendMessage(context, "&6║")
-        sendMessage(context, "&6║ &7Features:")
-        sendMessage(context, "&6║ &a• &7Annotation-based command system")
-        sendMessage(context, "&6║ &a• &7Advanced configuration management")
-        sendMessage(context, "&6║ &a• &7Color processing utilities")
-        sendMessage(context, "&6║ &a• &7Enhanced logging system")
-        sendMessage(context, "&6║")
-        sendMessage(context, "&6║ &7Use &e/arlibs help &7for available commands")
-        sendMessage(context, "&6╚═════════════════════════════════╝")
-        sendMessage(context, "")
-        
+        send(
+            "",
+            "&6╔═════════════════════════════════╗",
+            "&6║        &eArLibs Framework &bv$version        &6║",
+            "&6╠═════════════════════════════════╣",
+            "&6║ &7Author(s): &e$authors",
+            "&6║ &7A powerful library for Bukkit plugins",
+            "&6║",
+            "&6║ &7Features:",
+            "&6║ &a• &7Annotation-based command system",
+            "&6║ &a• &7Advanced configuration management",
+            "&6║ &a• &7Color processing utilities",
+            "&6║ &a• &7Enhanced logging system",
+            "&6║",
+            "&6║ &7Use &e/arlibs help &7for available commands",
+            "&6╚═════════════════════════════════╝",
+            ""
+        )
         return CommandResult.SUCCESS
     }
 
@@ -66,68 +66,60 @@ class ArLibsCommand : BaseCommand() {
     @SubCommand(
         name = "help",
         aliases = ["h", "?"],
-        description = "Show help information and available commands",
-        usage = "/arlibs help [command]",
-        order = 1
+        description = "Show help information and available commands"
     )
     fun helpCommand(context: CommandContext): CommandResult {
+        val mainCommandInfo = CommandAPI.getCommandInfo("arlibs")
+            ?: return sendError("Could not load help information.").let { CommandResult.ERROR }
+
         if (context.args.isEmpty()) {
-            sendMessage(context, "&6=== &eArLibs Help &6===")
-            sendMessage(context, "&7Available commands:")
-            sendMessage(context, "")
-            sendMessage(context, "&e/arlibs &7- Show ArLibs information")
-            sendMessage(context, "&e/arlibs help [command] &7- Show help information")
-            sendMessage(context, "&e/arlibs info &7- Show detailed system information")
-            sendMessage(context, "&e/arlibs commands [plugin] &7- List registered commands")
-            sendMessage(context, "&e/arlibs reload &7- Reload ArLibs configuration")
-            sendMessage(context, "&e/arlibs debug &7- Toggle debug mode")
-            sendMessage(context, "&e/arlibs version &7- Show version information")
-            sendMessage(context, "&e/arlibs action <expression> &7- Execute action expressions")
-            sendMessage(context, "&e/arlibs condition <expression> &7- Evaluate condition expressions")
-            sendMessage(context, "")
-            sendMessage(context, "&7Use &e/arlibs help <command> &7for specific help")
+            val messages = mutableListOf(
+                "&6=== &eArLibs Help &6===",
+                "&7Available commands:",
+                ""
+            )
+
+            // Main command
+            messages.add("&e${mainCommandInfo.usage} &7- ${mainCommandInfo.description}")
+
+            // Subcommands (sorted alphabetically)
+            mainCommandInfo.subCommands.values
+                .distinctBy { it.name }
+                .sortedBy { it.name }
+                .filter { context.hasPermission(it.permission) }
+                .forEach { subCmd ->
+                    val usage = subCmd.usage.ifEmpty { "/${mainCommandInfo.name} ${subCmd.name}" }
+                    val description = subCmd.description.ifEmpty { "No description available." }
+                    messages.add("&e$usage &7- $description")
+                }
+
+            messages.addAll(listOf(
+                "",
+                "&7Use &e/arlibs help <subcommand_name> &7for specific help."
+            ))
+
+            send(*messages.toTypedArray())
         } else {
-            val subCommand = context.args[0].lowercase()
-            when (subCommand) {
-                "info" -> {
-                    sendMessage(context, "&6Help: &e/arlibs info")
-                    sendMessage(context, "&7Shows detailed system information including:")
-                    sendMessage(context, "&7• Server version and platform details")
-                    sendMessage(context, "&7• ArLibs configuration status")
-                    sendMessage(context, "&7• Loaded plugins using ArLibs")
-                    sendMessage(context, "&7• System performance metrics")
-                }
-                "commands" -> {
-                    sendMessage(context, "&6Help: &e/arlibs commands [plugin]")
-                    sendMessage(context, "&7Lists all commands registered through ArLibs")
-                    sendMessage(context, "&7If a plugin name is specified, shows only that plugin's commands")
-                    sendMessage(context, "&7Includes command permissions and descriptions")
-                }
-                "reload" -> {
-                    sendMessage(context, "&6Help: &e/arlibs reload")
-                    sendMessage(context, "&7Reloads the ArLibs configuration")
-                    sendMessage(context, "&7This will refresh settings without restarting the server")
-                    sendMessage(context, "&cWarning: This may affect other plugins using ArLibs")
-                }
-                "debug" -> {
-                    sendMessage(context, "&6Help: &e/arlibs debug")
-                    sendMessage(context, "&7Toggles debug mode on/off")
-                    sendMessage(context, "&7When enabled, shows detailed logging information")
-                    sendMessage(context, "&7Useful for troubleshooting issues")
-                }
-                "action" -> {
-                    sendMessage(context, "&6Help: &e/arlibs action <expression>")
-                    sendMessage(context, "&7Execute action expressions directly")
-                }
-                "condition" -> {
-                    sendMessage(context, "&6Help: &e/arlibs condition <expression>")
-                    sendMessage(context, "&7Evaluate condition expressions directly")
-                }
-                else -> {
-                    sendError(context, "Unknown command: $subCommand")
-                    sendMessage(context, "&7Use &e/arlibs help &7to see available commands")
-                }
+            val subCommandInfo = mainCommandInfo.subCommands[context.args[0].lowercase()]
+                ?: return sendError("Unknown command: ${context.args[0]}").let { CommandResult.ERROR }
+
+            if (!context.hasPermission(subCommandInfo.permission)) {
+                return sendError("You don't have permission to view help for this command.").let { CommandResult.ERROR }
             }
+
+            val effectiveExecutor = when {
+                mainCommandInfo.executor == CommandExecutor.PLAYER || subCommandInfo.executor == CommandExecutor.PLAYER -> CommandExecutor.PLAYER
+                mainCommandInfo.executor == CommandExecutor.CONSOLE || subCommandInfo.executor == CommandExecutor.CONSOLE -> CommandExecutor.CONSOLE
+                else -> CommandExecutor.ALL
+            }
+
+            send(
+                "&6Help: &e${subCommandInfo.usage.ifEmpty { "/${mainCommandInfo.name} ${subCommandInfo.name}" }}",
+                "&7Description: &f${subCommandInfo.description.ifEmpty { "No description available." }}",
+                if (subCommandInfo.aliases.isNotEmpty()) "&7Aliases: &f${subCommandInfo.aliases.joinToString(", ")}" else null,
+                "&7Permission: &f${subCommandInfo.permission}",
+                "&7Executor: &f$effectiveExecutor"
+            )
         }
         return CommandResult.SUCCESS
     }
@@ -139,51 +131,53 @@ class ArLibsCommand : BaseCommand() {
     @SubCommand(
         name = "info",
         aliases = ["information", "about"],
-        description = "Show detailed ArLibs system information",
-        usage = "/arlibs info",
-        order = 2
+        description = "Show detailed ArLibs system information"
     )
     fun infoCommand(context: CommandContext): CommandResult {
         val plugin = ArLibs.getInstance()
         val version = plugin.pluginMeta.version
         val server = Bukkit.getServer()
         val allCommands = CommandAPI.getAllCommands()
-        val pluginCommandCounts = mutableMapOf<String, Int>()
+        val pluginCommandCounts = allCommands.values
+            .groupingBy { it.instance.javaClass.`package`?.name?.split(".")?.getOrNull(2) ?: "Unknown" }
+            .eachCount()
         
-        // Count commands by plugin
-        for ((_, commandInfo) in allCommands) {
-            val pluginName = commandInfo.instance.javaClass.`package`?.name?.split(".")?.getOrNull(2) ?: "Unknown"
-            pluginCommandCounts[pluginName] = (pluginCommandCounts[pluginName] ?: 0) + 1
+        val messages = mutableListOf(
+            "&6=== &eArLibs System Information &6===",
+            "",
+            "&6Plugin Information:",
+            "&7• Version: &e$version",
+            "&7• Authors: &e${plugin.pluginMeta.authors.joinToString(", ")}",
+            "&7• Description: &e${plugin.pluginMeta.description ?: "A powerful library for Bukkit plugins"}",
+            "",
+            "&6Server Information:",
+            "&7• Server: &e${server.name} ${server.version}",
+            "&7• Bukkit Version: &e${server.bukkitVersion}",
+            "&7• Online Players: &e${server.onlinePlayers.size}/${server.maxPlayers}",
+            "",
+            "&6Command System:",
+            "&7• Total Registered Commands: &e${allCommands.size}",
+            "&7• Commands by Plugin:"
+        )
+
+        pluginCommandCounts.toList().sortedByDescending { it.second }.forEach { (pluginName, count) ->
+            messages.add("&7  - &e$pluginName&7: &a$count command(s)")
         }
         
-        sendMessage(context, "&6=== &eArLibs System Information &6===")
-        sendMessage(context, "")
-        sendMessage(context, "&6Plugin Information:")
-        sendMessage(context, "&7• Version: &e$version")
-        sendMessage(context, "&7• Authors: &e${plugin.pluginMeta.authors.joinToString(", ")}")
-        sendMessage(context, "&7• Description: &e${plugin.pluginMeta.description ?: "A powerful library for Bukkit plugins"}")
-        sendMessage(context, "")
-        sendMessage(context, "&6Server Information:")
-        sendMessage(context, "&7• Server: &e${server.name} ${server.version}")
-        sendMessage(context, "&7• Bukkit Version: &e${server.bukkitVersion}")
-        sendMessage(context, "&7• Online Players: &e${server.onlinePlayers.size}/${server.maxPlayers}")
-        sendMessage(context, "")
-        sendMessage(context, "&6Command System:")
-        sendMessage(context, "&7• Total Registered Commands: &e${allCommands.size}")
-        sendMessage(context, "&7• Commands by Plugin:")
-        for ((pluginName, count) in pluginCommandCounts.toList().sortedByDescending { it.second }) {
-            sendMessage(context, "&7  - &e$pluginName&7: &a$count command(s)")
-        }
-        sendMessage(context, "")
-        sendMessage(context, "&6Configuration Status:")
+        messages.add("")
+        messages.add("&6Configuration Status:")
+        
         try {
             val coreConfig = ConfigManager.getConfig(CoreConfig::class)
-            sendMessage(context, "&7• Debug Mode: &e${if (coreConfig?.debug == true) "Enabled" else "Disabled"}")
-            sendMessage(context, "&7• Config Loaded: &aSuccessfully")
+            messages.addAll(listOf(
+                "&7• Debug Mode: &e${if (coreConfig?.debug == true) "Enabled" else "Disabled"}",
+                "&7• Config Loaded: &aSuccessfully"
+            ))
         } catch (e: Exception) {
-            sendMessage(context, "&7• Config Status: &cError - ${e.message}")
+            messages.add("&7• Config Status: &cError - ${e.message}")
         }
         
+        send(*messages.toTypedArray())
         return CommandResult.SUCCESS
     }
 
@@ -195,16 +189,13 @@ class ArLibsCommand : BaseCommand() {
         name = "commands",
         aliases = ["cmd", "list"],
         description = "List all commands registered through ArLibs",
-        usage = "/arlibs commands [plugin]",
-        maxArgs = 1,
-        order = 3
+        maxArgs = 1
     )
     fun commandsCommand(context: CommandContext): CommandResult {
         val allCommands = CommandAPI.getAllCommands()
         
         if (allCommands.isEmpty()) {
-            sendWarning(context, "No commands are currently registered through ArLibs")
-            return CommandResult.SUCCESS
+            return sendWarning("No commands are currently registered through ArLibs").let { CommandResult.SUCCESS }
         }
         
         val filterPlugin = context.getArg(0)
@@ -215,8 +206,7 @@ class ArLibsCommand : BaseCommand() {
         }
         
         if (filteredCommands.isEmpty()) {
-            sendError(context, "No commands found for plugin: $filterPlugin")
-            return CommandResult.ERROR
+            return sendError("No commands found for plugin: $filterPlugin").let { CommandResult.ERROR }
         }
         
         val title = if (filterPlugin != null) {
@@ -225,29 +215,26 @@ class ArLibsCommand : BaseCommand() {
             "&6=== &eAll Registered Commands &6==="
         }
         
-        sendMessage(context, title)
-        sendMessage(context, "&7Total: &e${filteredCommands.size} command(s)")
-        sendMessage(context, "")
+        val messages = mutableListOf(
+            title,
+            "&7Total: &e${filteredCommands.size} command(s)",
+            ""
+        )
         
-        for ((commandName, commandInfo) in filteredCommands.toList().sortedBy { it.first }) {
-            val aliases = if (commandInfo.aliases.isNotEmpty()) {
-                " &8(${commandInfo.aliases.joinToString(", ")})"
-            } else ""
+        filteredCommands.toList().sortedBy { it.first }.forEach { (commandName, commandInfo) ->
+            val aliases = if (commandInfo.aliases.isNotEmpty()) " &8(${commandInfo.aliases.joinToString(", ")})" else ""
+            val permission = if (commandInfo.permission.isNotEmpty()) " &8[${commandInfo.permission}]" else ""
             
-            val permission = if (commandInfo.permission.isNotEmpty()) {
-                " &8[${commandInfo.permission}]"
-            } else ""
-            
-            sendMessage(context, "&e/$commandName$aliases$permission")
+            messages.add("&e/$commandName$aliases$permission")
             if (commandInfo.description.isNotEmpty()) {
-                sendMessage(context, "&7  └─ ${commandInfo.description}")
+                messages.add("&7  └─ ${commandInfo.description}")
             }
-            
             if (commandInfo.subCommands.isNotEmpty()) {
-                sendMessage(context, "&7  └─ Subcommands: &a${commandInfo.subCommands.size}")
+                messages.add("&7  └─ Subcommands: &a${commandInfo.subCommands.size}")
             }
         }
         
+        send(*messages.toTypedArray())
         return CommandResult.SUCCESS
     }
 
@@ -258,35 +245,31 @@ class ArLibsCommand : BaseCommand() {
     @SubCommand(
         name = "reload",
         aliases = ["rl"],
-        description = "Reload ArLibs configuration",
-        usage = "/arlibs reload",
-        order = 4
+        description = "Reload ArLibs configuration"
     )
     @Permission("arlibs.command.reload", defaultValue = PermissionDefault.OP)
     fun reloadCommand(context: CommandContext): CommandResult {
-        sendMessage(context, "&7Reloading ArLibs configuration...")
+        send("&7Reloading ArLibs configuration...")
         
-        try {
+        return try {
             ConfigManager.reloadConfig(CoreConfig::class)
             val coreConfig = ConfigManager.getConfig(CoreConfig::class)
             
-            // Update logger debug mode
             com.arteam.arLibs.utils.Logger.init(ArLibs.getInstance(), debug = coreConfig?.debug == true)
             
-            sendSuccess(context, "ArLibs configuration reloaded successfully!")
-            sendMessage(context, "&7Debug Mode: &e${if (coreConfig?.debug == true) "Enabled" else "Disabled"}")
+            send(
+                "&aArLibs configuration reloaded successfully!",
+                "&7Debug Mode: &e${if (coreConfig?.debug == true) "Enabled" else "Disabled"}"
+            )
             
-            // Log the reload action
             com.arteam.arLibs.utils.Logger.info("Configuration reloaded by ${context.sender.name}")
+            CommandResult.SUCCESS
             
         } catch (e: Exception) {
-            sendError(context, "Failed to reload configuration: ${e.message}")
+            sendError("Failed to reload configuration: ${e.message}")
             com.arteam.arLibs.utils.Logger.severe("Failed to reload configuration: ${e.message}")
-            e.printStackTrace()
-            return CommandResult.ERROR
+            CommandResult.ERROR
         }
-        
-        return CommandResult.SUCCESS
     }
 
     /**
@@ -296,41 +279,33 @@ class ArLibsCommand : BaseCommand() {
     @SubCommand(
         name = "debug",
         aliases = ["d"],
-        description = "Toggle debug mode on/off",
-        usage = "/arlibs debug",
-        order = 5
+        description = "Toggle debug mode on/off"
     )
     @Permission("arlibs.command.debug", defaultValue = PermissionDefault.OP)
     fun debugCommand(context: CommandContext): CommandResult {
-        try {
+        return try {
             val coreConfig = ConfigManager.getConfig(CoreConfig::class)
             val newDebugState = !(coreConfig?.debug ?: false)
             
-            // Update config
             coreConfig?.debug = newDebugState
             ConfigManager.saveConfig(CoreConfig::class)
             
-            // Update logger
             com.arteam.arLibs.utils.Logger.init(ArLibs.getInstance(), debug = newDebugState)
             
-            val statusMessage = if (newDebugState) {
-                "&aEnabled"
-            } else {
-                "&cDisabled"
-            }
+            val statusMessage = if (newDebugState) "&aEnabled" else "&cDisabled"
             
-            sendSuccess(context, "Debug mode $statusMessage")
-            sendMessage(context, "&7Debug logging is now ${if (newDebugState) "enabled" else "disabled"}")
+            send(
+                "&aDebug mode $statusMessage",
+                "&7Debug logging is now ${if (newDebugState) "enabled" else "disabled"}"
+            )
             
-            // Log the change
             com.arteam.arLibs.utils.Logger.info("Debug mode ${if (newDebugState) "enabled" else "disabled"} by ${context.sender.name}")
+            CommandResult.SUCCESS
             
         } catch (e: Exception) {
-            sendError(context, "Failed to toggle debug mode: ${e.message}")
-            return CommandResult.ERROR
+            sendError("Failed to toggle debug mode: ${e.message}")
+            CommandResult.ERROR
         }
-        
-        return CommandResult.SUCCESS
     }
 
     /**
@@ -340,29 +315,32 @@ class ArLibsCommand : BaseCommand() {
     @SubCommand(
         name = "version",
         aliases = ["ver", "v"],
-        description = "Show ArLibs version information",
-        usage = "/arlibs version",
-        order = 6
+        description = "Show ArLibs version information"
     )
     fun versionCommand(context: CommandContext): CommandResult {
         val plugin = ArLibs.getInstance()
         val version = plugin.pluginMeta.version
         val authors = plugin.pluginMeta.authors.joinToString(", ")
         
-        sendMessage(context, "&6ArLibs Framework")
-        sendMessage(context, "&7Version: &e$version")
-        sendMessage(context, "&7Authors: &e$authors")
-        sendMessage(context, "&7Built for: &eBukkit/Spigot/Paper")
-        sendMessage(context, "&7API Version: &e${plugin.pluginMeta.apiVersion ?: "Legacy"}")
+        val messages = mutableListOf(
+            "&6ArLibs Framework",
+            "&7Version: &e$version",
+            "&7Authors: &e$authors",
+            "&7Built for: &eBukkit/Spigot/Paper",
+            "&7API Version: &e${plugin.pluginMeta.apiVersion ?: "Legacy"}"
+        )
         
         if (context.hasPermission("arlibs.command.debug")) {
-            sendMessage(context, "")
-            sendMessage(context, "&7Debug Information:")
-            sendMessage(context, "&7• Plugin File: &e${plugin.dataFolder.parent}/${plugin.pluginMeta.name}.jar")
-            sendMessage(context, "&7• Data Folder: &e${plugin.dataFolder.absolutePath}")
-            sendMessage(context, "&7• Loaded: &e${if (plugin.isEnabled) "Yes" else "No"}")
+            messages.addAll(listOf(
+                "",
+                "&7Debug Information:",
+                "&7• Plugin File: &e${plugin.dataFolder.parent}/${plugin.pluginMeta.name}.jar",
+                "&7• Data Folder: &e${plugin.dataFolder.absolutePath}",
+                "&7• Loaded: &e${if (plugin.isEnabled) "Yes" else "No"}"
+            ))
         }
         
+        send(*messages.toTypedArray())
         return CommandResult.SUCCESS
     }
 
@@ -374,59 +352,97 @@ class ArLibsCommand : BaseCommand() {
         name = "action",
         aliases = ["act"],
         description = "Execute action expressions directly",
-        usage = "/arlibs action <expression>",
         minArgs = 1,
-        order = 7
+        executor = CommandExecutor.PLAYER
     )
     @Permission("arlibs.command.action", defaultValue = PermissionDefault.OP)
     fun actionCommand(context: CommandContext): CommandResult {
-        if (context.sender !is org.bukkit.entity.Player) {
-            sendError(context, "This command can only be used by players")
-            return CommandResult.ERROR
-        }
-        
         val actionExpression = context.args.joinToString(" ").trim()
-        if (actionExpression.isEmpty()) {
-            sendError(context, "Usage: /arlibs action <expression>")
-            return CommandResult.ERROR
-        }
+        val player = context.getPlayer()
         
-        val player = context.sender as org.bukkit.entity.Player
+        send("&6Executing action: &e$actionExpression")
         
-        sendMessage(context, "&6Executing action: &e$actionExpression")
-        
-        try {
+        return try {
             val job = com.arteam.arLibs.action.ActionAPI.executeAction(player, actionExpression)
             if (job != null) {
-                sendSuccess(context, "Action executed successfully")
+                sendSuccess("Action executed successfully")
+                CommandResult.SUCCESS
             } else {
-                sendError(context, "Failed to parse action expression")
-                sendMessage(context, "&7Supported formats:")
-                sendMessage(context, "&7• tell <message>")
-                sendMessage(context, "&7• sound <sound>-<volume>-<pitch>")
-                sendMessage(context, "&7• if {condition} then {actions} [else {actions}]")
-                sendMessage(context, "&7• delay <ticks>")
-                sendMessage(context, "&7• command <command>")
-                sendMessage(context, "&7• console <command>")
-                sendMessage(context, "&7• actionbar <message>")
-                sendMessage(context, "&7• title `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut>")
-                return CommandResult.ERROR
+                sendError("Failed to parse action expression")
+                showActionHelp()
+                CommandResult.ERROR
             }
         } catch (e: Exception) {
-            sendError(context, "Failed to execute action: ${e.message}")
-            sendMessage(context, "&7Supported formats:")
-            sendMessage(context, "&7• tell <message>")
-            sendMessage(context, "&7• sound <sound>-<volume>-<pitch>")
-            sendMessage(context, "&7• if {condition} then {actions} [else {actions}]")
-            sendMessage(context, "&7• delay <ticks>")
-            sendMessage(context, "&7• command <command>")
-            sendMessage(context, "&7• console <command>")
-            sendMessage(context, "&7• actionbar <message>")
-            sendMessage(context, "&7• title `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut>")
-            return CommandResult.ERROR
+            sendError("Failed to execute action: ${e.message}")
+            showActionHelp()
+            CommandResult.ERROR
         }
+    }
+
+    /**
+     * Condition subcommand - evaluate condition expressions directly.
+     * 条件子命令 - 直接评估条件表达式。
+     */
+    @SubCommand(
+        name = "condition",
+        aliases = ["cond", "conditions"],
+        description = "Evaluate condition expressions directly",
+        minArgs = 1,
+        executor = CommandExecutor.PLAYER
+    )
+    @Permission("arlibs.command.condition", defaultValue = PermissionDefault.OP)
+    fun conditionCommand(context: CommandContext): CommandResult {
+        val conditionExpression = context.args.joinToString(" ").trim()
+        val player = context.getPlayer()
         
-        return CommandResult.SUCCESS
+        send("&6Evaluating condition: &e$conditionExpression")
+        
+        return try {
+            if (!com.arteam.arLibs.condition.ConditionManager.isValidExpression(conditionExpression)) {
+                sendError("Invalid condition syntax")
+                showConditionHelp()
+                return CommandResult.ERROR
+            }
+            
+            val result = com.arteam.arLibs.condition.ConditionManager.evaluate(player, conditionExpression)
+            
+            if (result) {
+                sendSuccess("Condition evaluated to: &atrue")
+            } else {
+                send("&6Condition evaluated to: &cfalse")
+            }
+            CommandResult.SUCCESS
+            
+        } catch (e: Exception) {
+            sendError("Error evaluating condition: ${e.message}")
+            showConditionHelp()
+            CommandResult.ERROR
+        }
+    }
+
+    private fun showActionHelp() {
+        send(
+            "&7Supported formats:",
+            "&7• tell <message>",
+            "&7• sound <sound>-<volume>-<pitch>",
+            "&7• if {condition} then {actions} [else {actions}]",
+            "&7• delay <ticks>",
+            "&7• command <command>",
+            "&7• console <command>",
+            "&7• actionbar <message>",
+            "&7• title `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut>"
+        )
+    }
+
+    private fun showConditionHelp() {
+        send(
+            "&7Supported formats:",
+            "&7• permission <node>",
+            "&7• papi <placeholder> [operator] [value]",
+            "&7• any [condition1; condition2; ...]",
+            "&7• all [condition1; condition2; ...]",
+            "&7• not <condition>"
+        )
     }
 
     /**
@@ -434,9 +450,8 @@ class ArLibsCommand : BaseCommand() {
      * 帮助子命令的Tab补全。
      */
     @TabComplete(subCommand = "help", argument = 0)
-    fun helpTabComplete(context: CommandContext): List<String> {
-        return listOf("info", "commands", "reload", "debug", "version", "action", "condition")
-    }
+    fun helpTabComplete(context: CommandContext): List<String> = 
+        listOf("info", "commands", "reload", "debug", "version", "action", "condition")
 
     /**
      * Tab completion for commands subcommand.
@@ -444,17 +459,10 @@ class ArLibsCommand : BaseCommand() {
      */
     @TabComplete(subCommand = "commands", argument = 0)
     fun commandsTabComplete(context: CommandContext): List<String> {
-        val allCommands = CommandAPI.getAllCommands()
-        val plugins = mutableSetOf<String>()
-        
-        for ((_, commandInfo) in allCommands) {
-            val pluginName = commandInfo.instance.javaClass.`package`?.name?.split(".")?.getOrNull(2)
-            if (pluginName != null) {
-                plugins.add(pluginName)
-            }
-        }
-        
-        return plugins.sorted()
+        return CommandAPI.getAllCommands().values
+            .mapNotNull { it.instance.javaClass.`package`?.name?.split(".")?.getOrNull(2) }
+            .toSet()
+            .sorted()
     }
 
     /**
@@ -466,127 +474,5 @@ class ArLibsCommand : BaseCommand() {
         val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition")
         val input = context.args.lastOrNull() ?: ""
         return subCommands.filter { it.startsWith(input, ignoreCase = true) }
-    }
-
-    /**
-     * Enhanced tab completion that provides contextual suggestions.
-     * 增强的Tab补全，提供上下文建议。
-     */
-    override fun onTabComplete(context: CommandContext): List<String> {
-        val completions = mutableListOf<String>()
-        
-        // Provide different completions based on subcommand context
-        when (context.subCommand) {
-            "help" -> {
-                // For help subcommand, suggest available commands to get help for
-                if (context.args.isEmpty()) {
-                    completions.addAll(listOf("info", "commands", "reload", "debug", "version", "action", "condition"))
-                }
-            }
-            "commands" -> {
-                // For commands subcommand, suggest plugin names
-                if (context.args.isEmpty()) {
-                    val allCommands = CommandAPI.getAllCommands()
-                    val plugins = mutableSetOf<String>()
-                    
-                    for ((_, commandInfo) in allCommands) {
-                        val pluginName = commandInfo.instance.javaClass.`package`?.name?.split(".")?.getOrNull(2)
-                        if (pluginName != null) {
-                            plugins.add(pluginName)
-                        }
-                    }
-                    
-                    completions.addAll(plugins.sorted())
-                }
-            }
-            "debug", "reload", "version", "info" -> {
-                // These commands don't take arguments, so no completions
-            }
-            "action" -> {
-                // For action subcommand, suggest action types for the first argument
-                if (context.args.isEmpty()) {
-                    completions.addAll(listOf("tell", "sound", "title", "actionbar", "command", "console", "delay", "if"))
-                }
-            }
-            "condition" -> {
-                // For condition subcommand, suggest condition types for the first argument
-                if (context.args.isEmpty()) {
-                    completions.addAll(listOf("permission", "papi", "any", "all", "not"))
-                }
-            }
-            else -> {
-                // For main command (no subcommand), suggest subcommands
-                if (context.args.isEmpty()) {
-                    completions.addAll(listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition"))
-                }
-            }
-        }
-        
-        return completions
-    }
-
-    /**
-     * Condition subcommand - evaluate condition expressions directly.
-     * 条件子命令 - 直接评估条件表达式。
-     */
-    @SubCommand(
-        name = "condition",
-        aliases = ["cond", "conditions"],
-        description = "Evaluate condition expressions directly",
-        usage = "/arlibs condition <expression>",
-        minArgs = 1,
-        order = 8
-    )
-    @Permission("arlibs.command.condition", defaultValue = PermissionDefault.OP)
-    fun conditionCommand(context: CommandContext): CommandResult {
-        if (context.sender !is org.bukkit.entity.Player) {
-            sendError(context, "This command can only be used by players")
-            return CommandResult.ERROR
-        }
-        
-        val conditionExpression = context.args.joinToString(" ").trim()
-        if (conditionExpression.isEmpty()) {
-            sendError(context, "Usage: /arlibs condition <expression>")
-            return CommandResult.ERROR
-        }
-        
-        val player = context.sender as org.bukkit.entity.Player
-        
-        sendMessage(context, "&6Evaluating condition: &e$conditionExpression")
-        
-        try {
-            val isValid = com.arteam.arLibs.condition.ConditionManager.isValidExpression(conditionExpression)
-            
-            if (!isValid) {
-                sendError(context, "Invalid condition syntax")
-                sendMessage(context, "&7Supported formats:")
-                sendMessage(context, "&7• permission <node>")
-                sendMessage(context, "&7• papi <placeholder> [operator] [value]")
-                sendMessage(context, "&7• any [condition1; condition2; ...]")
-                sendMessage(context, "&7• all [condition1; condition2; ...]")
-                sendMessage(context, "&7• not <condition>")
-                return CommandResult.ERROR
-            }
-            
-            val result = com.arteam.arLibs.condition.ConditionManager.evaluate(player, conditionExpression)
-            
-            if (result) {
-                sendSuccess(context, "Condition evaluated to: &atrue")
-            } else {
-                sendMessage(context, "&6Condition evaluated to: &cfalse")
-            }
-            
-        } catch (e: Exception) {
-            sendError(context, "Error evaluating condition: ${e.message}")
-            sendMessage(context, "&7Supported formats:")
-            sendMessage(context, "&7• permission <node>")
-            sendMessage(context, "&7• papi <placeholder> [operator] [value]")
-            sendMessage(context, "&7• any [condition1; condition2; ...]")
-            sendMessage(context, "&7• all [condition1; condition2; ...]")
-            sendMessage(context, "&7• not <condition>")
-            return CommandResult.ERROR
-        }
-        
-        return CommandResult.SUCCESS
     }
 } 

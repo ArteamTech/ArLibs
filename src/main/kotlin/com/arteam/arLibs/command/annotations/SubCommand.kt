@@ -21,20 +21,16 @@ package com.arteam.arLibs.command.annotations
  *                子命令的别名。
  * @param description A brief description of what the subcommand does.
  *                    子命令功能的简要描述。
- * @param usage Usage information for the subcommand.
- *              子命令的使用方法信息。
- * @param permission The permission required to use this subcommand. If empty, inherits from parent command.
- *                   使用此子命令所需的权限。如果为空，继承父命令的权限。
- * @param playerOnly Whether this subcommand can only be executed by players.
- *                   此子命令是否只能由玩家执行。
- * @param consoleOnly Whether this subcommand can only be executed from console.
- *                    此子命令是否只能从控制台执行。
+ * @param usage Usage information for the subcommand. If empty, will be auto-generated.
+ *              子命令的使用方法信息。如果为空，将自动生成。
+ * @param executor Who can execute this subcommand. Combines with parent command restrictions.
+ *                 谁可以执行此子命令。与父命令限制组合。
  * @param minArgs Minimum number of arguments required for this subcommand.
  *                此子命令所需的最少参数数量。
  * @param maxArgs Maximum number of arguments allowed for this subcommand. -1 for unlimited.
  *                此子命令允许的最多参数数量。-1表示无限制。
- * @param order The order in which this subcommand should be displayed in help. Lower numbers appear first.
- *              此子命令在帮助中显示的顺序。数字越小越靠前。
+ * @param async Whether this subcommand should be executed asynchronously.
+ *              此子命令是否应异步执行。
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
@@ -43,10 +39,8 @@ annotation class SubCommand(
     val aliases: Array<String> = [],
     val description: String = "",
     val usage: String = "",
-    val permission: String = "",
-    val playerOnly: Boolean = false,
-    val consoleOnly: Boolean = false,
+    val executor: CommandExecutor = CommandExecutor.ALL,
     val minArgs: Int = 0,
     val maxArgs: Int = -1,
-    val order: Int = 100
+    val async: Boolean = false
 ) 

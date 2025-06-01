@@ -12,7 +12,19 @@
 package com.arteam.arLibs.command
 
 import com.arteam.arLibs.utils.ColorUtil
-import org.bukkit.command.CommandSender
+
+/**
+ * Feedback message types for command results.
+ * 命令结果的反馈消息类型。
+ */
+enum class FeedbackType {
+    NO_PERMISSION,
+    INVALID_USAGE,
+    PLAYER_ONLY,
+    CONSOLE_ONLY,
+    SUBCOMMAND_NOT_FOUND,
+    ERROR
+}
 
 /**
  * Base class for all command implementations.
@@ -32,9 +44,7 @@ abstract class BaseCommand {
      * @return The result of command execution.
      *         命令执行的结果。
      */
-    open fun execute(context: CommandContext): CommandResult {
-        return CommandResult.INVALID_USAGE
-    }
+    open fun execute(context: CommandContext): CommandResult = CommandResult.INVALID_USAGE
 
     /**
      * Provides tab completion suggestions for the command.
@@ -48,9 +58,7 @@ abstract class BaseCommand {
      * @return A list of completion suggestions.
      *         补全建议列表。
      */
-    open fun onTabComplete(context: CommandContext): List<String> {
-        return emptyList()
-    }
+    open fun onTabComplete(context: CommandContext): List<String> = emptyList()
 
     /**
      * Called before command execution for validation and preprocessing.
@@ -64,9 +72,7 @@ abstract class BaseCommand {
      * @return true to continue execution, false to cancel.
      *         返回true继续执行，返回false取消执行。
      */
-    open fun onPreExecute(context: CommandContext): Boolean {
-        return true
-    }
+    open fun onPreExecute(context: CommandContext): Boolean = true
 
     /**
      * Called after command execution for cleanup and post-processing.
@@ -80,111 +86,60 @@ abstract class BaseCommand {
      * @param result The result of command execution.
      *               命令执行的结果。
      */
-    open fun onPostExecute(context: CommandContext, result: CommandResult) {
-        // Default implementation does nothing
+    open fun onPostExecute(context: CommandContext, result: CommandResult) {}
+
+    /** Current command context. 当前命令上下文。 */
+    private var currentContext: CommandContext? = null
+    
+    /** Set the current command context. 设置当前命令上下文。 */
+    internal fun setContext(context: CommandContext) {
+        this.currentContext = context
     }
+    
+    /** Clear the current command context. 清除当前命令上下文。 */
+    internal fun clearContext() {
+        this.currentContext = null
+    }
+    
+    // Simplified message sending methods / 简化的消息发送方法
+    
+    /** Send a normal message. 发送普通消息。 */
+    protected fun send(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process(message))
+    
+    /** Send multiple messages. 发送多条消息。 */
+    protected fun send(vararg messages: String?) = messages.filterNotNull().forEach { send(it) }
+    
+    /** Send an error message. 发送错误消息。 */
+    protected fun sendError(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process("&c$message"))
+    
+    /** Send a success message. 发送成功消息。 */
+    protected fun sendSuccess(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process("&a$message"))
+    
+    /** Send a warning message. 发送警告消息。 */
+    protected fun sendWarning(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process("&e$message"))
+    
+    /** Send an info message. 发送信息消息。 */
+    protected fun sendInfo(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process("&b$message"))
+    
+    /** Get current command context. 获取当前命令上下文。 */
+    protected fun getCurrentContext(): CommandContext = 
+        currentContext ?: throw IllegalStateException("Command context not available. This method can only be called during command execution.")
 
     /**
-     * Sends a message to the command sender with color support.
-     * 向命令发送者发送支持颜色的消息。
-     *
-     * @param sender The command sender.
-     *               命令发送者。
-     * @param message The message to send.
-     *                要发送的消息。
+     * Get the feedback message for a given command context and type.
+     * 获取给定命令上下文和类型的反馈消息。
      */
-    protected fun sendMessage(sender: CommandSender, message: String) {
-        sender.sendMessage(ColorUtil.process(message))
-    }
-
-    /**
-     * Sends a message to the command sender using the context.
-     * 使用上下文向命令发送者发送消息。
-     *
-     * @param context The command context.
-     *                命令上下文。
-     * @param message The message to send.
-     *                要发送的消息。
-     */
-    protected fun sendMessage(context: CommandContext, message: String) {
-        sendMessage(context.sender, message)
-    }
-
-    /**
-     * Sends an error message to the command sender.
-     * 向命令发送者发送错误消息。
-     *
-     * @param sender The command sender.
-     *               命令发送者。
-     * @param message The error message to send.
-     *                要发送的错误消息。
-     */
-    protected fun sendError(sender: CommandSender, message: String) {
-        sendMessage(sender, "&c$message")
-    }
-
-    /**
-     * Sends an error message to the command sender using the context.
-     * 使用上下文向命令发送者发送错误消息。
-     *
-     * @param context The command context.
-     *                命令上下文。
-     * @param message The error message to send.
-     *                要发送的错误消息。
-     */
-    protected fun sendError(context: CommandContext, message: String) {
-        sendError(context.sender, message)
-    }
-
-    /**
-     * Sends a success message to the command sender.
-     * 向命令发送者发送成功消息。
-     *
-     * @param sender The command sender.
-     *               命令发送者。
-     * @param message The success message to send.
-     *                要发送的成功消息。
-     */
-    protected fun sendSuccess(sender: CommandSender, message: String) {
-        sendMessage(sender, "&a$message")
-    }
-
-    /**
-     * Sends a success message to the command sender using the context.
-     * 使用上下文向命令发送者发送成功消息。
-     *
-     * @param context The command context.
-     *                命令上下文。
-     * @param message The success message to send.
-     *                要发送的成功消息。
-     */
-    protected fun sendSuccess(context: CommandContext, message: String) {
-        sendSuccess(context.sender, message)
-    }
-
-    /**
-     * Sends a warning message to the command sender.
-     * 向命令发送者发送警告消息。
-     *
-     * @param sender The command sender.
-     *               命令发送者。
-     * @param message The warning message to send.
-     *                要发送的警告消息。
-     */
-    protected fun sendWarning(sender: CommandSender, message: String) {
-        sendMessage(sender, "&e$message")
-    }
-
-    /**
-     * Sends a warning message to the command sender using the context.
-     * 使用上下文向命令发送者发送警告消息。
-     *
-     * @param context The command context.
-     *                命令上下文。
-     * @param message The warning message to send.
-     *                要发送的警告消息。
-     */
-    protected fun sendWarning(context: CommandContext, message: String) {
-        sendWarning(context.sender, message)
+    open fun getFeedbackMessage(context: CommandContext, type: FeedbackType): String = when (type) {
+        FeedbackType.NO_PERMISSION -> "&cYou don't have permission to use this command."
+        FeedbackType.INVALID_USAGE -> {
+            val usage = CommandAPI.getCommandInfo(context.command)?.let { info ->
+                info.subCommands[context.subCommand]?.usage ?: info.usage
+            } ?: ""
+            "&cUsage: $usage".takeIf { usage.isNotEmpty() } ?: "&cInvalid command usage."
+        }
+        FeedbackType.PLAYER_ONLY -> "&cThis command can only be used by players."
+        FeedbackType.CONSOLE_ONLY -> "&cThis command can only be used from console."
+        FeedbackType.SUBCOMMAND_NOT_FOUND -> "&cSubcommand not found."
+        FeedbackType.ERROR -> "&cAn error occurred while executing the command."
     }
 } 
