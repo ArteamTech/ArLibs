@@ -15,6 +15,7 @@ import com.arteam.arLibs.ArLibs
 import com.arteam.arLibs.command.annotations.*
 import com.arteam.arLibs.config.ConfigManager
 import com.arteam.arLibs.config.CoreConfig
+import com.arteam.arLibs.utils.Logger
 import org.bukkit.Bukkit
 
 /**
@@ -254,20 +255,19 @@ class ArLibsCommand : BaseCommand() {
         return try {
             ConfigManager.reloadConfig(CoreConfig::class)
             val coreConfig = ConfigManager.getConfig(CoreConfig::class)
-            
-            com.arteam.arLibs.utils.Logger.init(ArLibs.getInstance(), debug = coreConfig?.debug == true)
+
             
             send(
                 "&aArLibs configuration reloaded successfully!",
                 "&7Debug Mode: &e${if (coreConfig?.debug == true) "Enabled" else "Disabled"}"
             )
             
-            com.arteam.arLibs.utils.Logger.info("Configuration reloaded by ${context.sender.name}")
+            Logger.info("Configuration reloaded by ${context.sender.name}")
             CommandResult.SUCCESS
             
         } catch (e: Exception) {
             sendError("Failed to reload configuration: ${e.message}")
-            com.arteam.arLibs.utils.Logger.severe("Failed to reload configuration: ${e.message}")
+            Logger.severe("Failed to reload configuration: ${e.message}")
             CommandResult.ERROR
         }
     }
@@ -290,8 +290,6 @@ class ArLibsCommand : BaseCommand() {
             coreConfig?.debug = newDebugState
             ConfigManager.saveConfig(CoreConfig::class)
             
-            com.arteam.arLibs.utils.Logger.init(ArLibs.getInstance(), debug = newDebugState)
-            
             val statusMessage = if (newDebugState) "&aEnabled" else "&cDisabled"
             
             send(
@@ -299,7 +297,7 @@ class ArLibsCommand : BaseCommand() {
                 "&7Debug logging is now ${if (newDebugState) "enabled" else "disabled"}"
             )
             
-            com.arteam.arLibs.utils.Logger.info("Debug mode ${if (newDebugState) "enabled" else "disabled"} by ${context.sender.name}")
+            Logger.info("Debug mode ${if (newDebugState) "enabled" else "disabled"} by ${context.sender.name}")
             CommandResult.SUCCESS
             
         } catch (e: Exception) {

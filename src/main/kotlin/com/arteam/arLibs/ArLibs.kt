@@ -60,7 +60,7 @@ class ArLibs : JavaPlugin() {
         }
         
         // Initialize the logger with debug setting from config
-        Logger.init(this, debug = coreConfig.debug)
+        Logger.init(coreConfig.debug)
         
         // Log plugin startup
         Logger.info("Plugin is starting up...")
@@ -71,8 +71,7 @@ class ArLibs : JavaPlugin() {
         // Initialize other configurations if needed
         // TODO: Add other configuration registrations here
         
-        // Initialize command system
-        // Command system is ready for other plugins to use
+        // Initialize the command system ready for other plugins to use
         Logger.info("Command system initialized and ready for registration")
         
         // Register ArLibs main command
@@ -101,6 +100,5 @@ class ArLibs : JavaPlugin() {
         }
         
         Logger.info("Plugin has been disabled.")
-        Logger.close() // Close the logger and release resources
     }
 }

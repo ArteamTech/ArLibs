@@ -41,7 +41,7 @@ object Logger {
     // 在不同级别记录消息。
     fun info(message: String) = log(Level.INFO, message)
     fun warn(message: String) = log(Level.WARNING, message)
-    fun error(message: String) = log(Level.SEVERE, message)
+    fun severe(message: String) = log(Level.SEVERE, message)
 
     /**
      * Logs a debug message if debug mode is enabled.
