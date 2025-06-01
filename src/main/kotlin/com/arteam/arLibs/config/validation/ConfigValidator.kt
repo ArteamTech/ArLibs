@@ -14,9 +14,6 @@ package com.arteam.arLibs.config.validation
 /**
  * Interface for validating configuration values.
  * 用于验证配置值的接口。
- *
- * @param T The type of value to validate (indicative, actual validation uses Any?)
- *          要验证的值的类型 (指示性，实际验证使用 Any?)
  */
 interface ConfigValidator<T> {
     /**

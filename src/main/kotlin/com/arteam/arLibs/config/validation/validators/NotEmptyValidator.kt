@@ -19,13 +19,6 @@ class NotEmptyStringValidator : ConfigValidator<String> {
     /**
      * Validates the given value.
      * 验证给定的值。
-     *
-     * @param value The value to validate, can be of any type.
-     *              要验证的值，可以是任何类型。
-     * @param path The configuration path of the value
-     *             值的配置路径
-     * @return The validation result
-     *         验证结果
      */
     override fun validate(value: Any?, path: String): ValidationResult {
         if (value == null) {
@@ -59,13 +52,6 @@ class NotEmptyCollectionValidator<T : Collection<*>> : ConfigValidator<T> {
     /**
      * Validates the given value.
      * 验证给定的值。
-     *
-     * @param value The value to validate, can be of any type.
-     *              要验证的值，可以是任何类型。
-     * @param path The configuration path of the value
-     *             值的配置路径
-     * @return The validation result
-     *         验证结果
      */
     override fun validate(value: Any?, path: String): ValidationResult {
         if (value == null) {
@@ -99,18 +85,12 @@ object NotEmptyValidators {
     /**
      * Returns a validator for non-empty strings.
      * 返回非空字符串的验证器。
-     *
-     * @return The validator for non-empty strings
-     *         非空字符串的验证器
      */
     fun string(): ConfigValidator<String> = NotEmptyStringValidator.INSTANCE
     
     /**
      * Returns a validator for non-empty collections.
      * 返回非空集合的验证器。
-     *
-     * @return The validator for non-empty collections
-     *         非空集合的验证器
      */
     @Suppress("UNCHECKED_CAST")
     fun <T : Collection<*>> collection(): ConfigValidator<T> = NotEmptyCollectionValidator.INSTANCE as ConfigValidator<T>

@@ -14,11 +14,6 @@ import com.arteam.arLibs.config.validation.ValidationResult
 /**
  * Validates that a numeric value is within a specified range.
  * 验证数值是否在指定范围内。
- *
- * @param min The minimum allowed value (inclusive)
- *            最小允许值（包含）
- * @param max The maximum allowed value (inclusive)
- *            最大允许值（包含）
  */
 @Suppress("unused")
 class RangeValidator<T : Comparable<T>>(
@@ -54,39 +49,18 @@ class RangeValidator<T : Comparable<T>>(
         /**
          * Creates a new RangeValidator for integers.
          * 为整数创建新的 RangeValidator。
-         *
-         * @param min The minimum allowed value (inclusive)
-         *            最小允许值（包含）
-         * @param max The maximum allowed value (inclusive)
-         *            最大允许值（包含）
-         * @return The new RangeValidator
-         *         新的 RangeValidator
          */
         fun forInt(min: Int, max: Int): RangeValidator<Int> = RangeValidator(min, max)
         
         /**
          * Creates a new RangeValidator for doubles.
          * 为双精度浮点数创建新的 RangeValidator。
-         *
-         * @param min The minimum allowed value (inclusive)
-         *            最小允许值（包含）
-         * @param max The maximum allowed value (inclusive)
-         *            最大允许值（包含）
-         * @return The new RangeValidator
-         *         新的 RangeValidator
          */
         fun forDouble(min: Double, max: Double): RangeValidator<Double> = RangeValidator(min, max)
         
         /**
          * Creates a new RangeValidator for longs.
          * 为长整数创建新的 RangeValidator。
-         *
-         * @param min The minimum allowed value (inclusive)
-         *            最小允许值（包含）
-         * @param max The maximum allowed value (inclusive)
-         *            最大允许值（包含）
-         * @return The new RangeValidator
-         *         新的 RangeValidator
          */
         fun forLong(min: Long, max: Long): RangeValidator<Long> = RangeValidator(min, max)
     }

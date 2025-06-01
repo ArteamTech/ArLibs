@@ -87,6 +87,7 @@ class ArLibsCommand : BaseCommand() {
             sendMessage(context, "&e/arlibs debug &7- Toggle debug mode")
             sendMessage(context, "&e/arlibs version &7- Show version information")
             sendMessage(context, "&e/arlibs action <type> [args] &7- Test action system")
+            sendMessage(context, "&e/arlibs condition <action> [args] &7- Manage condition expressions")
             sendMessage(context, "")
             sendMessage(context, "&7Use &e/arlibs help <command> &7for specific help")
         } else {
@@ -131,6 +132,21 @@ class ArLibsCommand : BaseCommand() {
                     sendMessage(context, "&7• delay - Add delay in ticks")
                     sendMessage(context, "&7• multi - Execute multiple actions")
                     sendMessage(context, "&7Use &e/arlibs action help &7for detailed examples")
+                }
+                "condition" -> {
+                    sendMessage(context, "&6Help: &e/arlibs condition <action> [args]")
+                    sendMessage(context, "&7Manage and test condition expressions")
+                    sendMessage(context, "&7Available actions:")
+                    sendMessage(context, "&7• test <expression> - Test condition against yourself")
+                    sendMessage(context, "&7• validate <expression> - Validate condition syntax")
+                    sendMessage(context, "&7• debug <expression> - Debug condition parsing")
+                    sendMessage(context, "&7• cache <clear|size|info> - Manage condition cache")
+                    sendMessage(context, "&7• help - Show detailed condition help")
+                    sendMessage(context, "&7Condition types: permission, papi, any, all, not")
+                    sendMessage(context, "&7Examples:")
+                    sendMessage(context, "&7• &e/arlibs condition test \"permission essentials.fly\"")
+                    sendMessage(context, "&7• &e/arlibs condition validate \"not papi %player_level% < 10\"")
+                    sendMessage(context, "&7Use &e/arlibs condition help &7for more information")
                 }
                 else -> {
                     sendError(context, "Unknown command: $subCommand")
@@ -554,7 +570,7 @@ class ArLibsCommand : BaseCommand() {
      */
     @TabComplete(subCommand = "help", argument = 0)
     fun helpTabComplete(context: CommandContext): List<String> {
-        return listOf("info", "commands", "reload", "debug", "version", "action")
+        return listOf("info", "commands", "reload", "debug", "version", "action", "condition")
     }
 
     /**
@@ -591,7 +607,7 @@ class ArLibsCommand : BaseCommand() {
      */
     @TabComplete(argument = 0, priority = 1)
     fun globalTabComplete(context: CommandContext): List<String> {
-        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action")
+        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition")
         val input = context.args.lastOrNull() ?: ""
         return subCommands.filter { it.startsWith(input, ignoreCase = true) }
     }
@@ -608,7 +624,7 @@ class ArLibsCommand : BaseCommand() {
             "help" -> {
                 // For help subcommand, suggest available commands to get help for
                 if (context.args.isEmpty()) {
-                    completions.addAll(listOf("info", "commands", "reload", "debug", "version", "action"))
+                    completions.addAll(listOf("info", "commands", "reload", "debug", "version", "action", "condition"))
                 }
             }
             "commands" -> {
@@ -636,14 +652,379 @@ class ArLibsCommand : BaseCommand() {
                     completions.addAll(listOf("help", "tell", "sound", "title", "actionbar", "command", "console", "delay", "multi"))
                 }
             }
+            "condition" -> {
+                // For condition subcommand, suggest available actions and condition types
+                if (context.args.isEmpty()) {
+                    completions.addAll(listOf("test", "validate", "debug", "cache", "help", "permission", "perm", "papi", "placeholder", "any", "all", "not"))
+                } else if (context.args.size == 1 && context.args[0].lowercase() == "cache") {
+                    completions.addAll(listOf("clear", "size", "info"))
+                }
+            }
             else -> {
                 // For main command (no subcommand), suggest subcommands
                 if (context.args.isEmpty()) {
-                    completions.addAll(listOf("help", "info", "commands", "reload", "debug", "version", "action"))
+                    completions.addAll(listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition"))
                 }
             }
         }
         
         return completions
+    }
+
+    /**
+     * Condition subcommand - manage and test condition expressions.
+     * 条件子命令 - 管理和测试条件表达式。
+     */
+    @SubCommand(
+        name = "condition",
+        aliases = ["cond", "conditions"],
+        description = "Manage and test condition expressions",
+        usage = "/arlibs condition <test|validate|cache|help> [args...]",
+        minArgs = 0,
+        order = 8
+    )
+    @Permission("arlibs.command.condition", defaultValue = PermissionDefault.OP)
+    fun conditionCommand(context: CommandContext): CommandResult {
+        // If no arguments provided, show help
+        if (context.args.isEmpty()) {
+            return showConditionHelp(context)
+        }
+        
+        val subAction = context.args[0].lowercase()
+        
+        when (subAction) {
+            "test" -> {
+                return testCondition(context)
+            }
+            "validate" -> {
+                return validateCondition(context)
+            }
+            "cache" -> {
+                return manageCacheCondition(context)
+            }
+            "help" -> {
+                return showConditionHelp(context)
+            }
+            "debug" -> {
+                return debugCondition(context)
+            }
+            // Support direct condition testing without "test" keyword
+            "permission", "perm", "papi", "placeholder", "any", "all", "not" -> {
+                return testConditionDirect(context)
+            }
+            else -> {
+                // Check if it looks like a condition expression
+                val expression = context.args.joinToString(" ")
+                if (isLikelyConditionExpression(expression)) {
+                    return testConditionDirect(context)
+                } else {
+                    sendError(context, "Unknown subcommand: $subAction")
+                    sendMessage(context, "&7Available commands: test, validate, debug, cache, help")
+                    sendMessage(context, "&7Or use direct condition testing: permission, papi, any, all, not")
+                    sendMessage(context, "&7Use &e/arlibs condition help &7for more information")
+                    return CommandResult.ERROR
+                }
+            }
+        }
+    }
+    
+    /**
+     * Test a condition expression directly (without "test" keyword).
+     * 直接测试条件表达式（不需要"test"关键字）。
+     */
+    private fun testConditionDirect(context: CommandContext): CommandResult {
+        if (context.sender !is org.bukkit.entity.Player) {
+            sendError(context, "Condition testing can only be used by players")
+            sendMessage(context, "&7Use &e/arlibs condition validate <expression> &7from console")
+            return CommandResult.ERROR
+        }
+        
+        val player = context.sender as org.bukkit.entity.Player
+        val expression = context.args.joinToString(" ")
+        
+        sendMessage(context, "&6Testing condition: &e$expression")
+        sendMessage(context, "&7Player: &e${player.name}")
+        
+        try {
+            val result = com.arteam.arLibs.condition.ConditionManager.evaluate(player, expression)
+            val description = com.arteam.arLibs.condition.ConditionManager.getConditionDescription(expression)
+            
+            sendMessage(context, "&7Result: ${if (result) "&aTrue (Condition met)" else "&cFalse (Condition not met)"}")
+            if (description != null) {
+                sendMessage(context, "&7Description: &e$description")
+            }
+            
+            // Log the test
+            com.arteam.arLibs.utils.Logger.debug("Condition test by ${player.name}: '$expression' = $result")
+            
+        } catch (e: Exception) {
+            sendError(context, "Error testing condition: ${e.message}")
+            sendMessage(context, "&7Use &e/arlibs condition help &7for syntax information")
+            com.arteam.arLibs.utils.Logger.warn("Error testing condition '$expression': ${e.message}")
+            return CommandResult.ERROR
+        }
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Test a condition expression against the command sender.
+     * 针对命令发送者测试条件表达式。
+     */
+    private fun testCondition(context: CommandContext): CommandResult {
+        if (context.sender !is org.bukkit.entity.Player) {
+            sendError(context, "Condition testing can only be used by players")
+            sendMessage(context, "&7Use &e/arlibs condition validate <expression> &7from console")
+            return CommandResult.ERROR
+        }
+        
+        if (context.args.size < 2) {
+            sendError(context, "Usage: /arlibs condition test <expression>")
+            sendMessage(context, "&7Example: &e/arlibs condition test \"permission essentials.fly\"")
+            sendMessage(context, "&7Or directly: &e/arlibs condition permission essentials.fly")
+            return CommandResult.ERROR
+        }
+        
+        val player = context.sender as org.bukkit.entity.Player
+        val expression = context.args.drop(1).joinToString(" ")
+        
+        sendMessage(context, "&6Testing condition: &e$expression")
+        sendMessage(context, "&7Player: &e${player.name}")
+        
+        try {
+            val result = com.arteam.arLibs.condition.ConditionManager.evaluate(player, expression)
+            val description = com.arteam.arLibs.condition.ConditionManager.getConditionDescription(expression)
+            
+            sendMessage(context, "&7Result: ${if (result) "&aTrue (Condition met)" else "&cFalse (Condition not met)"}")
+            if (description != null) {
+                sendMessage(context, "&7Description: &e$description")
+            }
+            
+            // Log the test
+            com.arteam.arLibs.utils.Logger.debug("Condition test by ${player.name}: '$expression' = $result")
+            
+        } catch (e: Exception) {
+            sendError(context, "Error testing condition: ${e.message}")
+            sendMessage(context, "&7Use &e/arlibs condition help &7for syntax information")
+            com.arteam.arLibs.utils.Logger.warn("Error testing condition '$expression': ${e.message}")
+            return CommandResult.ERROR
+        }
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Validate a condition expression syntax.
+     * 验证条件表达式语法。
+     */
+    private fun validateCondition(context: CommandContext): CommandResult {
+        if (context.args.size < 2) {
+            sendError(context, "Usage: /arlibs condition validate <expression>")
+            sendMessage(context, "&7Example: &e/arlibs condition validate \"papi %player_level% >= 10\"")
+            return CommandResult.ERROR
+        }
+        
+        val expression = context.args.drop(1).joinToString(" ")
+        
+        sendMessage(context, "&6Validating condition: &e$expression")
+        
+        try {
+            val isValid = com.arteam.arLibs.condition.ConditionManager.isValidExpression(expression)
+            val description = com.arteam.arLibs.condition.ConditionManager.getConditionDescription(expression)
+            
+            if (isValid) {
+                sendSuccess(context, "Condition syntax is valid")
+                if (description != null) {
+                    sendMessage(context, "&7Description: &e$description")
+                }
+            } else {
+                sendError(context, "Invalid condition syntax")
+                sendMessage(context, "&7Please check your expression format")
+                sendMessage(context, "&7Use &e/arlibs condition help &7for syntax information")
+            }
+            
+        } catch (e: Exception) {
+            sendError(context, "Error validating condition: ${e.message}")
+            sendMessage(context, "&7Use &e/arlibs condition help &7for syntax information")
+            return CommandResult.ERROR
+        }
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Manage condition cache.
+     * 管理条件缓存。
+     */
+    private fun manageCacheCondition(context: CommandContext): CommandResult {
+        if (context.args.size < 2) {
+            sendError(context, "Usage: /arlibs condition cache <clear|size|info>")
+            return CommandResult.ERROR
+        }
+        
+        val cacheAction = context.args[1].lowercase()
+        
+        when (cacheAction) {
+            "clear" -> {
+                com.arteam.arLibs.condition.ConditionManager.clearCache()
+                sendSuccess(context, "Condition cache cleared")
+                com.arteam.arLibs.utils.Logger.info("Condition cache cleared by ${context.sender.name}")
+            }
+            "size" -> {
+                val size = com.arteam.arLibs.condition.ConditionManager.getCacheSize()
+                sendMessage(context, "&7Current cache size: &e$size condition(s)")
+            }
+            "info" -> {
+                val size = com.arteam.arLibs.condition.ConditionManager.getCacheSize()
+                sendMessage(context, "&6=== &eCondition Cache Information &6===")
+                sendMessage(context, "&7Cached conditions: &e$size")
+                sendMessage(context, "&7Cache helps improve performance by avoiding re-parsing")
+                sendMessage(context, "&7Use &e/arlibs condition cache clear &7to clear cache")
+            }
+            else -> {
+                sendError(context, "Unknown cache action: $cacheAction")
+                sendMessage(context, "&7Available actions: clear, size, info")
+                return CommandResult.ERROR
+            }
+        }
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Debug condition parsing for troubleshooting.
+     * 调试条件解析以进行故障排除。
+     */
+    private fun debugCondition(context: CommandContext): CommandResult {
+        if (context.args.size < 2) {
+            sendError(context, "Usage: /arlibs condition debug <expression>")
+            sendMessage(context, "&7Example: &e/arlibs condition debug \"all [papi %player_level% >= 10; %player_sneaking%]\"")
+            return CommandResult.ERROR
+        }
+        
+        val expression = context.args.drop(1).joinToString(" ")
+        
+        sendMessage(context, "&6=== &eCondition Debug Information &6===")
+        sendMessage(context, "&7Expression: &e$expression")
+        sendMessage(context, "")
+        
+        try {
+            // Test parsing
+            val condition = com.arteam.arLibs.condition.ConditionParser.parse(expression)
+            if (condition != null) {
+                sendSuccess(context, "Parsing: SUCCESS")
+                sendMessage(context, "&7Description: &e${condition.getDescription()}")
+                
+                // Test evaluation if sender is a player
+                if (context.sender is org.bukkit.entity.Player) {
+                    val player = context.sender as org.bukkit.entity.Player
+                    val result = condition.evaluate(player)
+                    sendMessage(context, "&7Evaluation: ${if (result) "&aTrue" else "&cFalse"}")
+                } else {
+                    sendMessage(context, "&7Evaluation: &7Skipped (console sender)")
+                }
+            } else {
+                sendError(context, "Parsing: FAILED")
+                sendMessage(context, "&7The expression could not be parsed")
+            }
+            
+            // Show cache information
+            val cacheSize = com.arteam.arLibs.condition.ConditionManager.getCacheSize()
+            sendMessage(context, "&7Cache size: &e$cacheSize")
+            
+        } catch (e: Exception) {
+            sendError(context, "Debug failed: ${e.message}")
+            sendMessage(context, "&7Stack trace logged to console")
+            e.printStackTrace()
+            return CommandResult.ERROR
+        }
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Show condition help information.
+     * 显示条件帮助信息。
+     */
+    private fun showConditionHelp(context: CommandContext): CommandResult {
+        sendMessage(context, "&6=== &eCondition System Help &6===")
+        sendMessage(context, "")
+        sendMessage(context, "&eAvailable Commands:")
+        sendMessage(context, "&7• &e/arlibs condition test <expression> &7- Test condition against yourself")
+        sendMessage(context, "&7• &e/arlibs condition validate <expression> &7- Validate condition syntax")
+        sendMessage(context, "&7• &e/arlibs condition debug <expression> &7- Debug condition parsing")
+        sendMessage(context, "&7• &e/arlibs condition cache <clear|size|info> &7- Manage condition cache")
+        sendMessage(context, "&7• &e/arlibs condition help &7- Show this help")
+        sendMessage(context, "")
+        sendMessage(context, "&eQuick Testing (for players):")
+        sendMessage(context, "&7• &e/arlibs condition permission essentials.fly")
+        sendMessage(context, "&7• &e/arlibs condition papi %player_level% >= 10")
+        sendMessage(context, "&7• &e/arlibs condition not permission essentials.fly")
+        sendMessage(context, "&7• &e/arlibs condition not papi %player_sneaking%")
+        sendMessage(context, "")
+        sendMessage(context, "&eCondition Types:")
+        sendMessage(context, "&7• &apermission <node> &7- Check player permission")
+        sendMessage(context, "&7• &apapi <placeholder> [operator] [value] &7- Check PlaceholderAPI value")
+        sendMessage(context, "&7• &aany [condition1; condition2; ...] &7- OR logic")
+        sendMessage(context, "&7• &aall [condition1; condition2; ...] &7- AND logic")
+        sendMessage(context, "&7• &anot <condition> &7- NOT logic (negation)")
+        sendMessage(context, "")
+        sendMessage(context, "&eOperators:")
+        sendMessage(context, "&7• &a> >= < <= == != &7- Comparison operators")
+        
+        return CommandResult.SUCCESS
+    }
+    
+    /**
+     * Tab completion for condition subcommand.
+     * 条件子命令的Tab补全。
+     */
+    @TabComplete(subCommand = "condition", argument = 0)
+    fun conditionTabComplete(context: CommandContext): List<String> {
+        return listOf("test", "validate", "debug", "cache", "help", "permission", "perm", "papi", "placeholder", "any", "all", "not")
+    }
+    
+    /**
+     * Tab completion for condition cache subcommand.
+     * 条件缓存子命令的Tab补全。
+     */
+    @TabComplete(subCommand = "condition", argument = 1)
+    fun conditionCacheTabComplete(context: CommandContext): List<String> {
+        if (context.args.isNotEmpty() && context.args[0].lowercase() == "cache") {
+            return listOf("clear", "size", "info")
+        }
+        return emptyList()
+    }
+
+    /**
+     * Checks if a string looks like a condition expression.
+     * 检查字符串是否看起来像条件表达式。
+     */
+    private fun isLikelyConditionExpression(expression: String): Boolean {
+        val trimmed = expression.trim().lowercase()
+        
+        // Check for known condition patterns
+        return when {
+            // Starts with known condition types
+            trimmed.startsWith("permission ") || trimmed.startsWith("perm ") -> true
+            trimmed.startsWith("placeholder ") || trimmed.startsWith("papi ") -> true
+            trimmed.startsWith("any[") || trimmed.startsWith("any [") -> true
+            trimmed.startsWith("all[") || trimmed.startsWith("all [") -> true
+            trimmed.startsWith("not ") -> true
+            
+            // Starts with placeholder
+            trimmed.startsWith("%") && trimmed.contains("%") -> true
+            
+            // Contains comparison operators (likely placeholder condition)
+            trimmed.contains(">=") || trimmed.contains("<=") || 
+            trimmed.contains("==") || trimmed.contains("!=") ||
+            (trimmed.contains(">") && !trimmed.contains(">>")) ||
+            (trimmed.contains("<") && !trimmed.contains("<<")) -> true
+            
+            // Contains brackets (likely logical condition)
+            trimmed.contains("[") && trimmed.contains("]") -> true
+            
+            else -> false
+        }
     }
 } 

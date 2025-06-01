@@ -14,11 +14,6 @@ import com.arteam.arLibs.config.validation.ValidationResult
 /**
  * Validates that a string value matches a specified regex pattern.
  * 验证字符串值是否匹配指定的正则表达式模式。
- *
- * @param pattern The regex pattern to match against
- *                要匹配的正则表达式模式
- * @param errorMessageFormat Custom error message format. Use {value} and {path} placeholders.
- *                           自定义错误消息格式。使用 {value} 和 {path} 占位符。
  */
 @Suppress("unused")
 class RegexValidator(
@@ -29,9 +24,6 @@ class RegexValidator(
     /**
      * Constructs a RegexValidator with a pattern string.
      * 使用模式字符串构造 RegexValidator。
-     *
-     * @param patternString The regex pattern string
-     *                      正则表达式模式字符串
      */
     constructor(patternString: String, errorMessageFormat: String = "Value '{value}' at '{path}' does not match the required pattern") : 
         this(patternString.toRegex(), errorMessageFormat)
@@ -39,13 +31,6 @@ class RegexValidator(
     /**
      * Validates the given value.
      * 验证给定的值。
-     *
-     * @param value The value to validate, can be of any type.
-     *              要验证的值，可以是任何类型。
-     * @param path The configuration path of the value
-     *             值的配置路径
-     * @return The validation result
-     *         验证结果
      */
     override fun validate(value: Any?, path: String): ValidationResult {
         if (value == null) {
