@@ -22,26 +22,19 @@ class RangeValidator<T : Comparable<T>>(
 ) : ConfigValidator<T> {
     
     override fun validate(value: Any?, path: String): ValidationResult {
-        if (value == null) {
-            return ValidationResult.failure("Value at '$path' cannot be null for RangeValidator")
-        }
+        value ?: return ValidationResult.failure("Value at '$path' cannot be null for RangeValidator")
         
-        // Try to cast to T, assuming T is the correct Comparable type for min/max
-        val comparableValue: T = try {
-            @Suppress("UNCHECKED_CAST")
-            value as T
-        } catch (e: ClassCastException) {
-            // A more specific check might be needed if T could be e.g. Int but value is Long
-            // For now, direct cast and rely on type compatibility with min/max
-            return ValidationResult.failure("Value '$value' at '$path' has an incompatible type (${value::class.simpleName}) for this RangeValidator (expected type compatible with ${min::class.simpleName})")
+        if (!min::class.java.isInstance(value)) {
+            return ValidationResult.failure("Value '$value' at '$path' has type ${value::class.simpleName}, but expected ${min::class.simpleName}")
         }
 
-        return if (comparableValue < min) {
-            ValidationResult.failure("Value '$comparableValue' at '$path' is less than the minimum allowed value: $min")
-        } else if (comparableValue > max) {
-            ValidationResult.failure("Value '$comparableValue' at '$path' is greater than the maximum allowed value: $max")
-        } else {
-            ValidationResult.success()
+        @Suppress("UNCHECKED_CAST")
+        val comparableValue = value as T
+
+        return when {
+            comparableValue < min -> ValidationResult.failure("Value '$comparableValue' at '$path' is less than minimum: $min")
+            comparableValue > max -> ValidationResult.failure("Value '$comparableValue' at '$path' is greater than maximum: $max")
+            else -> ValidationResult.success()
         }
     }
     

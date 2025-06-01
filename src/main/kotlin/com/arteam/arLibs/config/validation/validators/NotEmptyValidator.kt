@@ -21,17 +21,14 @@ class NotEmptyStringValidator : ConfigValidator<String> {
      * 验证给定的值。
      */
     override fun validate(value: Any?, path: String): ValidationResult {
-        if (value == null) {
-            return ValidationResult.failure("Value at '$path' cannot be null for NotEmptyStringValidator")
-        }
+        value ?: return ValidationResult.failure("Value at '$path' cannot be null for NotEmptyStringValidator")
+        
         if (value !is String) {
-            return ValidationResult.failure("Value at '$path' must be a String for NotEmptyStringValidator, but was ${value::class.simpleName}")
+            return ValidationResult.failure("Value at '$path' must be a String, but was ${value::class.simpleName}")
         }
-        return if (value.isBlank()) {
-            ValidationResult.failure("Value at '$path' cannot be empty or blank")
-        } else {
-            ValidationResult.success()
-        }
+        
+        return if (value.isBlank()) ValidationResult.failure("Value at '$path' cannot be empty or blank") 
+               else ValidationResult.success()
     }
     
     /**
@@ -54,17 +51,14 @@ class NotEmptyCollectionValidator<T : Collection<*>> : ConfigValidator<T> {
      * 验证给定的值。
      */
     override fun validate(value: Any?, path: String): ValidationResult {
-        if (value == null) {
-            return ValidationResult.failure("Value at '$path' cannot be null for NotEmptyCollectionValidator")
-        }
+        value ?: return ValidationResult.failure("Value at '$path' cannot be null for NotEmptyCollectionValidator")
+        
         if (value !is Collection<*>) {
-            return ValidationResult.failure("Value at '$path' must be a Collection for NotEmptyCollectionValidator, but was ${value::class.simpleName}")
+            return ValidationResult.failure("Value at '$path' must be a Collection, but was ${value::class.simpleName}")
         }
-        return if (value.isEmpty()) {
-            ValidationResult.failure("Collection at '$path' cannot be empty")
-        } else {
-            ValidationResult.success()
-        }
+        
+        return if (value.isEmpty()) ValidationResult.failure("Collection at '$path' cannot be empty") 
+               else ValidationResult.success()
     }
 
     /**

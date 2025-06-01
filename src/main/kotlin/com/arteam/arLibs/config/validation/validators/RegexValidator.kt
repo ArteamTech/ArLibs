@@ -33,21 +33,14 @@ class RegexValidator(
      * 验证给定的值。
      */
     override fun validate(value: Any?, path: String): ValidationResult {
-        if (value == null) {
-            return ValidationResult.failure("Value at '$path' cannot be null for RegexValidator")
-        }
+        value ?: return ValidationResult.failure("Value at '$path' cannot be null for RegexValidator")
+        
         if (value !is String) {
-            return ValidationResult.failure("Value at '$path' must be a String for RegexValidator, but was ${value::class.simpleName}")
+            return ValidationResult.failure("Value at '$path' must be a String, but was ${value::class.simpleName}")
         }
         
-        return if (pattern.matches(value)) {
-            ValidationResult.success()
-        } else {
-            val errorMessage = errorMessageFormat
-                .replace("{value}", value)
-                .replace("{path}", path)
-            ValidationResult.failure(errorMessage)
-        }
+        return if (pattern.matches(value)) ValidationResult.success()
+               else ValidationResult.failure(errorMessageFormat.replace("{value}", value).replace("{path}", path))
     }
 
     /**
@@ -59,27 +52,18 @@ class RegexValidator(
          * Email validator pattern.
          * 电子邮件验证器模式。
          */
-        val EMAIL = RegexValidator(
-            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$".toRegex(),
-            "Value '{value}' at '{path}' is not a valid email address"
-        )
+        val EMAIL = RegexValidator("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$", "Value '{value}' at '{path}' is not a valid email address")
         
         /**
          * URL validator pattern.
          * URL 验证器模式。
          */
-        val URL = RegexValidator(
-            "^(https?|ftp)://[^\\s/$.?#].\\S*$".toRegex(),
-            "Value '{value}' at '{path}' is not a valid URL"
-        )
+        val URL = RegexValidator("^(https?|ftp)://[^\\s/$.?#].\\S*$", "Value '{value}' at '{path}' is not a valid URL")
         
         /**
          * IP address validator pattern.
          * IP 地址验证器模式。
          */
-        val IP_ADDRESS = RegexValidator(
-            "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$".toRegex(),
-            "Value '{value}' at '{path}' is not a valid IP address"
-        )
+        val IP_ADDRESS = RegexValidator("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$", "Value '{value}' at '{path}' is not a valid IP address")
     }
 } 

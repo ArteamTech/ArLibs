@@ -1,6 +1,9 @@
 /**
- * A logging utility that enhances Bukkit's default logger with color support and multi-plugin compatibility.
- * 一个日志工具，增强Bukkit的默认日志器，支持颜色和多插件兼容性。
+ * Utility class for logging messages with proper color formatting.
+ * This logger provides debug level configuration and automatic plugin context detection.
+ *
+ * 用于记录带有适当颜色格式化的消息的工具类。
+ * 此记录器提供调试级别配置和自动插件上下文检测。
  *
  * @author ArteamTech
  * @since 2025-05-18
@@ -9,148 +12,88 @@
 package com.arteam.arLibs.utils
 
 import org.bukkit.Bukkit
-import org.bukkit.plugin.Plugin
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import org.bukkit.plugin.java.JavaPlugin
 import java.util.logging.Level
 
-@Suppress("unused")
 object Logger {
-    // Thread pool for asynchronous logging
-    // 用于异步日志的线程池
-    private val loggerExecutor: ExecutorService = Executors.newSingleThreadExecutor()
-
-    // Debug mode flag
-    // 调试模式标志
-    private var debugMode: Boolean = false
     
-    // Plugin context for logging
-    // 日志记录的插件上下文
-    private var pluginContext = ThreadLocal<Plugin>()
-
+    @Volatile private var isDebugEnabled: Boolean = false
+    @Volatile private var isInitialized: Boolean = false
+    private var pluginName: String? = null
+    
     /**
-     * Initializes this logging utility with plugin context and debug mode.
-     * 使用插件上下文和调试模式初始化此日志记录实用程序。
+     * Initializes the logger with debug mode setting.
+     * This method is thread-safe and can be called multiple times safely.
      *
-     * @param plugin The plugin to set as context
-     *               要设置为上下文的插件
-     * @param debug Whether to enable debug mode (default: false)
-     *              是否启用调试模式（默认：false）
+     * 使用调试模式设置初始化记录器。
+     * 此方法是线程安全的，可以安全地多次调用。
      */
-    fun init(plugin: Plugin, debug: Boolean = false) {
-        pluginContext.set(plugin)
-        debugMode = debug
-        // Use Bukkit's logger for this initial confirmation as our own logger might not be fully ready
-        Bukkit.getLogger().info("[ArLibs Logger.init] Context set for ${plugin.name}. Debug mode explicitly set to: $debugMode")
+    @Synchronized
+    fun init(debugMode: Boolean) {
+        isDebugEnabled = debugMode
+        if (!isInitialized) {
+            pluginName = getPluginContext()
+            isInitialized = true
+        }
     }
 
-    /**
-     * Clears the plugin context for the current thread and shuts down this logging utility.
-     * 清除当前线程的插件上下文并关闭此日志记录实用程序。
-     */
-    fun close() {
-        pluginContext.remove()
-        loggerExecutor.shutdown()
-    }
+    // Logs messages at different levels.
+    // 在不同级别记录消息。
+    fun info(message: String) = log(Level.INFO, message)
+    fun warn(message: String) = log(Level.WARNING, message)
+    fun error(message: String) = log(Level.SEVERE, message)
 
     /**
-     * Gets the current plugin context or throws an exception if not set
-     * 获取当前插件上下文，如果未设置则抛出异常
-     */
-    private fun getPluginContext(): Plugin {
-        return pluginContext.get() ?: throw IllegalStateException(
-            "Logger not initialized. Please call Logger.init(plugin) first or use the plugin parameter version of the logging methods."
-        )
-    }
-
-    /**
-     * Logs an informational message
-     * 记录信息级别的日志
+     * Logs a debug message if debug mode is enabled.
+     * Debug messages use INFO level but are only shown when debug is enabled.
      *
-     * @param message The message to log
-     *                要记录的消息
-     */
-    fun info(message: String) {
-        log(getPluginContext(), Level.INFO, message)
-    }
-
-    /**
-     * Logs a warning message
-     * 记录警告级别的日志
-     *
-     * @param message The message to log
-     *                要记录的消息
-     */
-    fun warn(message: String) {
-        log(getPluginContext(), Level.WARNING, message)
-    }
-
-    /**
-     * Logs a severe error message
-     * 记录严重错误级别的日志
-     *
-     * @param message The message to log
-     *                要记录的消息
-     */
-    fun severe(message: String) {
-        // Always log severe messages synchronously for immediate attention
-        // 始终同步记录严重错误消息以立即引起注意
-        log(getPluginContext(), Level.SEVERE, message, forceSync = true)
-    }
-
-    /**
-     * Logs a debug message (only shown when debug mode is enabled)
-     * 记录调试信息（仅在调试模式启用时显示）
-     *
-     * @param message The message to log
-     *                要记录的消息
+     * 如果启用了调试模式，则记录调试消息。
+     * 调试消息使用INFO级别，但仅在启用调试时显示。
      */
     fun debug(message: String) {
-        if (debugMode) {
-            log(getPluginContext(), Level.FINE, "[DEBUG] $message")
-        } else {
-            // This will help us see if debug messages are being suppressed when we expect them.
-            // Avoid logging this message if getPluginContext() itself would fail.
-            if (pluginContext.get() != null) {
-                 log(getPluginContext(), Level.INFO, "[DEBUG SUPPRESSED] $message")
-            }
+        if (isDebugEnabled) log(Level.INFO, "[DEBUG] $message")
+    }
+
+    /**
+     * Logs a message with the specified level.
+     * The message is processed for color codes before logging.
+     *
+     * 使用指定级别记录消息。
+     * 消息在记录前会处理颜色代码。
+     */
+    private fun log(level: Level, message: String) {
+        try {
+            val processedMessage = if (message.contains('&') || message.contains('<')) {
+                ColorUtil.stripColorCodes(ColorUtil.process(message))
+            } else message
+            
+            val formattedMessage = pluginName?.let { "[$it] $processedMessage" } ?: processedMessage
+            Bukkit.getLogger().log(level, formattedMessage)
+        } catch (e: Exception) {
+            System.err.println("Logger error: ${e.message}")
+            System.err.println("Original message: $message")
         }
     }
 
     /**
-     * Internal method to handle the actual message logging.
-     * 内部方法，用于处理实际的消息记录。
+     * Attempts to determine the plugin context from the call stack.
+     * Returns null if the plugin context cannot be determined.
      *
-     * @param plugin The plugin that is logging the message
-     *               记录日志的插件
-     * @param level The logging level
-     *              日志级别
-     * @param message The message to log
-     *                要记录的消息
-     * @param forceSync Whether to force synchronous logging
-     *                  是否强制同步记录日志
+     * 尝试从调用堆栈确定插件上下文。
+     * 如果无法确定插件上下文，则返回null。
      */
-    private fun log(plugin: Plugin, level: Level, message: String, forceSync: Boolean = false) {
-        val logTask = {
-            // First, convert `&` to `§` for Minecraft's color format
-            val processedMessage = ColorUtil.process(message)
-            
-            // Format the message with plugin name
-            val formattedMessage = "[${plugin.name}] $processedMessage"
-            
-            // Use console sender for color support
-            when (level) {
-                Level.INFO -> Bukkit.getConsoleSender().sendMessage(formattedMessage)
-                Level.WARNING -> Bukkit.getConsoleSender().sendMessage("§e$formattedMessage")  // Yellow for warnings
-                Level.SEVERE -> Bukkit.getConsoleSender().sendMessage("§c$formattedMessage")   // Red for severe errors
-                else -> Bukkit.getConsoleSender().sendMessage(formattedMessage)
+    private fun getPluginContext(): String? = try {
+        Thread.currentThread().stackTrace.asSequence()
+            .map { it.className }
+            .mapNotNull { className ->
+                try {
+                    val clazz = Class.forName(className)
+                    if (JavaPlugin::class.java.isAssignableFrom(clazz)) {
+                        @Suppress("UNCHECKED_CAST")
+                        JavaPlugin.getPlugin(clazz as Class<out JavaPlugin>).name
+                    } else null
+                } catch (_: Exception) { null }
             }
-        }
-
-        if (!forceSync && !Bukkit.isPrimaryThread()) {
-            loggerExecutor.execute(logTask)
-        } else {
-            logTask.invoke()
-        }
-    }
+            .firstOrNull()
+    } catch (_: Exception) { null }
 } 

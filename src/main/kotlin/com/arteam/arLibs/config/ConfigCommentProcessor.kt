@@ -84,121 +84,85 @@ class ConfigCommentProcessor {
         /**
          * Processes comments for a configuration class.
          * 处理配置类的注释。
-         * 
-         * @param configClass The class of the configuration
-         *                    配置的类
-         * @param content The content of the configuration file
-         *                配置文件的内容
-         * @return The processed content with comments
-         *         处理后的内容包含注释
          */
         private fun processComments(configClass: KClass<*>, content: MutableList<String>): List<String> {
             val result = mutableListOf<String>()
             
             // Add file header comments if any
-            val configAnnotation = configClass.findAnnotation<Config>()
-            if (configAnnotation != null && configAnnotation.comments.isNotEmpty()) {
-                for (comment in configAnnotation.comments) {
-                    result.add("# $comment")
+            configClass.findAnnotation<Config>()?.let { configAnnotation ->
+                if (configAnnotation.comments.isNotEmpty()) {
+                    configAnnotation.comments.forEach { result.add("# $it") }
+                    result.add("")
                 }
-                result.add("")
             }
             
             // Process field comments
             val pathComments = collectComments(configClass)
-            
-            // Add comments to the content
             var currentPath = ""
             val indentStack = mutableListOf<String>()
             
-            for ((lineIndex, line) in content.withIndex()) {
+            content.forEachIndexed { lineIndex, line ->
                 val trimmedLine = line.trim()
-                var colonIndex = -1 // Initialize colonIndex here
+                var colonIndex = -1
 
                 if (trimmedLine.isNotEmpty() && !trimmedLine.startsWith("#")) {
-                    // Calculate current indentation
                     val indent = line.takeWhile { it.isWhitespace() }
                     
                     // Detect if we're moving to a parent level
                     while (indentStack.isNotEmpty() && indent.length < indentStack.last().length) {
                         indentStack.removeAt(indentStack.size - 1)
-                        val lastDot = currentPath.lastIndexOf('.')
-                        currentPath = if (lastDot != -1) {
-                            currentPath.substring(0, lastDot)
-                        } else {
-                            ""
-                        }
+                        currentPath = currentPath.substringBeforeLast('.', "")
                     }
                     
-                    // Find the path for this line
-                    colonIndex = trimmedLine.indexOf(':') // Assign to the broader scoped variable
+                    colonIndex = trimmedLine.indexOf(':')
                     if (colonIndex > 0) {
                         val key = trimmedLine.substring(0, colonIndex).trim()
                         
-                        // Update the current path
-                        if (currentPath.isEmpty()) {
-                            currentPath = key
-                        } else {
-                            // Check if we're at a new nesting level
-                            if (indent.length > (indentStack.lastOrNull()?.length ?: -1)) {
+                        currentPath = when {
+                            currentPath.isEmpty() -> {
                                 indentStack.add(indent)
-                            } else if (indent.length < indentStack.last().length) {
-                                // Moved up one or more levels
-                                while(indentStack.isNotEmpty() && indent.length < indentStack.last().length) {
-                                    indentStack.removeAt(indentStack.size - 1)
-                                    val lastDot = currentPath.lastIndexOf('.')
-                                    currentPath = if (lastDot != -1) currentPath.substring(0, lastDot) else ""
+                                key
+                            }
+                            indent.length > (indentStack.lastOrNull()?.length ?: -1) -> {
+                                indentStack.add(indent)
+                                "$currentPath.$key"
+                            }
+                            else -> {
+                                if (indentStack.isEmpty() || indent.length != indentStack.last().length) {
+                                    indentStack.clear()
+                                    indentStack.add(indent)
                                 }
-                                val lastDotCurrent = currentPath.lastIndexOf('.')
-                                currentPath = if (lastDotCurrent != -1) currentPath.substring(0, lastDotCurrent) + ".$key" else key
-
-                            } else {
-                                // Same level, just update the last key
-                                val lastDot = currentPath.lastIndexOf('.')
-                                currentPath = if (lastDot != -1) {
-                                    currentPath.substring(0, lastDot) + ".$key"
-                                } else {
-                                    key
-                                }
+                                if (currentPath.contains('.')) currentPath.substringBeforeLast('.') + ".$key" else key
                             }
                         }
                         
-                        // Add comments for this path if any
-                        val comments = pathComments[currentPath]
-                        if (comments != null) {
-                            for (comment in comments) {
-                                result.add("${indent}# $comment")
-                            }
+                        pathComments[currentPath]?.forEach { comment ->
+                            result.add("${indent}# $comment")
                         }
                     }
                 }
                 result.add(line)
                 
-                // Improved logic for adding blank lines after key-value pairs
-                // Check if the current line is a key-value pair (not a section header)
+                // Add blank line after key-value pairs
                 if (trimmedLine.isNotEmpty() && !trimmedLine.startsWith("#") && colonIndex > 0 && !trimmedLine.endsWith(":")) {
-                    // Add a blank line after a key-value pair for spacing, but not if it's the last line in the content
-                    // or if the next line is already blank or a comment (to avoid double-spacing)
                     val nextLineIndex = lineIndex + 1
                     if (nextLineIndex < content.size) {
                         val nextTrimmedLine = content[nextLineIndex].trim()
                         if (nextTrimmedLine.isNotEmpty() && !nextTrimmedLine.startsWith("#")) {
-                            result.add("") 
+                            result.add("")
                         }
                     } else {
-                        // If it is the last line, add a blank line.
                         result.add("")
                     }
                 }
             }
             
-            // Remove trailing blank lines that might have been added excessively
+            // Clean up trailing blank lines
             while (result.isNotEmpty() && result.last().isBlank()) {
                 result.removeAt(result.size - 1)
             }
-            // Ensure there is at least one blank line at the very end of the file if content was written.
-            if (result.isNotEmpty() && (result.last().isNotEmpty() || (result.size > 1 && result[result.size-2].isNotEmpty() ) )) {
-                 result.add("")
+            if (result.isNotEmpty() && result.last().isNotEmpty()) {
+                result.add("")
             }
 
             return result
@@ -207,22 +171,16 @@ class ConfigCommentProcessor {
         /**
          * Collects comments from a configuration class.
          * 从配置类收集注释。
-         * 
-         * @param configClass The class of the configuration
-         *                    配置的类
-         * @return A map of path to comments
-         *         一个包含路径到注释的映射
          */
         private fun collectComments(configClass: KClass<*>): Map<String, List<String>> {
             val comments = mutableMapOf<String, List<String>>()
 
-            // Iterate over KProperties to correctly find annotations, similar to populateYamlFromInstance
             configClass.memberProperties.forEach { prop ->
                 val field = try { prop.javaField } catch (_: Exception) { null } ?: return@forEach
                 field.isAccessible = true
-                if (Modifier.isStatic(field.modifiers)) return@forEach
-
-                collectFieldComments(prop, field, "", comments, configClass) 
+                if (!Modifier.isStatic(field.modifiers)) {
+                    collectFieldComments(prop, field, "", comments, configClass)
+                }
             }
             return comments
         }
@@ -230,48 +188,34 @@ class ConfigCommentProcessor {
         /**
          * Collects comments from a KProperty and its backing Field.
          * 从 KProperty 和其支持的 Field 收集注释。
-         * 
-         * @param prop The KProperty to collect comments from
-         *             要收集注释的 KProperty
-         * @param field The backing Field of the KProperty
-         *              KProperty 的底层 Field
-         * @param parentPath The parent path for nested properties
-         *                  嵌套属性的父路径
-         * @param comments The mutable map to store collected comments
-         *                可变映射，用于存储收集的注释
-         * @param ownerClass The class of the owner of the KProperty
-         *                   KProperty 的拥有者类
          */
         private fun collectFieldComments(prop: kotlin.reflect.KProperty1<out Any, *>, field: Field, parentPath: String, comments: MutableMap<String, List<String>>, ownerClass: KClass<*>) {
-            val configFieldAnnotation = prop.findAnnotation<ConfigField>() 
+            val configFieldAnnotation = prop.findAnnotation<ConfigField>()
             val configValueAnnotation = prop.findAnnotation<ConfigValue>()
 
-            // Collect comments from @ConfigField
-            if (configFieldAnnotation != null) {
-                val fieldPath = if (parentPath.isEmpty()) configFieldAnnotation.path else "$parentPath.${configFieldAnnotation.path}"
-                if (configFieldAnnotation.comments.isNotEmpty()) {
-                    comments[fieldPath] = configFieldAnnotation.comments.toList()
-                }
-                try {
-                    // For recursion, we need the class of the field's type
-                    val fieldTypeKClass = field.type.kotlin
-                    fieldTypeKClass.memberProperties.forEach { nestedProp ->
-                        val nestedField = try { nestedProp.javaField } catch (_: Exception) { null } ?: return@forEach
-                        nestedField.isAccessible = true
-                        if (Modifier.isStatic(nestedField.modifiers)) return@forEach
-                        collectFieldComments(nestedProp, nestedField, fieldPath, comments, fieldTypeKClass)
+            when {
+                configFieldAnnotation != null -> {
+                    val fieldPath = if (parentPath.isEmpty()) configFieldAnnotation.path else "$parentPath.${configFieldAnnotation.path}"
+                    if (configFieldAnnotation.comments.isNotEmpty()) {
+                        comments[fieldPath] = configFieldAnnotation.comments.toList()
                     }
-                } catch (_: Exception) {
-                    Logger.warn("Could not reflect on nested fields of ${field.name} (type ${field.type.simpleName})")
+                    try {
+                        field.type.kotlin.memberProperties.forEach { nestedProp ->
+                            val nestedField = try { nestedProp.javaField } catch (_: Exception) { null } ?: return@forEach
+                            nestedField.isAccessible = true
+                            if (!Modifier.isStatic(nestedField.modifiers)) {
+                                collectFieldComments(nestedProp, nestedField, fieldPath, comments, field.type.kotlin)
+                            }
+                        }
+                    } catch (_: Exception) {
+                        Logger.warn("Could not reflect on nested fields of ${field.name} (type ${field.type.simpleName})")
+                    }
                 }
-                return
-            }
-            
-            // Collect comments from @ConfigValue
-            if (configValueAnnotation != null) {
-                val valuePath = if (parentPath.isEmpty()) configValueAnnotation.path else "$parentPath.${configValueAnnotation.path}"
-                if (configValueAnnotation.comments.isNotEmpty()) {
-                    comments[valuePath] = configValueAnnotation.comments.toList()
+                configValueAnnotation != null -> {
+                    val valuePath = if (parentPath.isEmpty()) configValueAnnotation.path else "$parentPath.${configValueAnnotation.path}"
+                    if (configValueAnnotation.comments.isNotEmpty()) {
+                        comments[valuePath] = configValueAnnotation.comments.toList()
+                    }
                 }
             }
         }
