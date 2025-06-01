@@ -11,6 +11,13 @@
  */
 package com.arteam.arLibs.condition
 
+/**
+ * Enumeration of comparison operators for arithmetic expressions.
+ * Used to compare numeric and string values in conditions.
+ *
+ * 算术表达式比较操作符的枚举。
+ * 用于在条件中比较数值和字符串值。
+ */
 enum class ComparisonOperator(val symbol: String) {
     GREATER_THAN(">"),
     GREATER_THAN_OR_EQUAL(">="),

@@ -14,6 +14,13 @@ package com.arteam.arLibs.condition.conditions
 import com.arteam.arLibs.condition.Condition
 import org.bukkit.entity.Player
 
+/**
+ * Condition implementation for logical AND operations.
+ * Only returns true if all sub-conditions are satisfied.
+ *
+ * 逻辑与操作的条件实现。
+ * 只有当所有子条件都满足时才返回true。
+ */
 class AllCondition(
     private val conditions: List<Condition>
 ) : Condition {

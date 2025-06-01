@@ -14,6 +14,13 @@ package com.arteam.arLibs.condition
 import com.arteam.arLibs.condition.conditions.*
 import com.arteam.arLibs.utils.Logger
 
+/**
+ * Parser for condition expressions from configuration strings.
+ * Supports parsing permission, placeholder, any, and all conditions.
+ *
+ * 从配置字符串解析条件表达式的解析器。
+ * 支持解析权限、占位符、任意和全部条件。
+ */
 @Suppress("unused")
 object ConditionParser {
     
@@ -103,11 +110,6 @@ object ConditionParser {
                     } else {
                         null
                     }
-                }
-                
-                // Check if it's a placeholder without prefix (for backward compatibility)
-                trimmed.startsWith("%") && trimmed.endsWith("%") -> {
-                    PlaceholderCondition.fromExpression(trimmed)
                 }
                 
                 // Check if it's a placeholder with comparison operator

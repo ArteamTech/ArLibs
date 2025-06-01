@@ -15,6 +15,13 @@ import com.arteam.arLibs.utils.Logger
 import org.bukkit.entity.Player
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Manager class for handling condition evaluation and caching.
+ * Provides convenient methods for evaluating conditions and managing condition sets.
+ *
+ * 用于处理条件评估和缓存的管理器类。
+ * 提供评估条件和管理条件集的便捷方法。
+ */
 @Suppress("unused")
 object ConditionManager {
     

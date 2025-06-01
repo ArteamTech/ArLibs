@@ -13,6 +13,13 @@ package com.arteam.arLibs.condition
 
 import org.bukkit.entity.Player
 
+/**
+ * Base interface for all condition types.
+ * Provides a common contract for evaluating conditions against players.
+ *
+ * 所有条件类型的基础接口。
+ * 为针对玩家评估条件提供通用契约。
+ */
 interface Condition {
     /**
      * Evaluates the condition for the given player.

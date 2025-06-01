@@ -14,6 +14,13 @@ package com.arteam.arLibs.condition.conditions
 import com.arteam.arLibs.condition.Condition
 import org.bukkit.entity.Player
 
+/**
+ * Condition implementation for logical NOT operations.
+ * Returns true if the sub-condition is NOT satisfied.
+ *
+ * 逻辑非操作的条件实现。
+ * 如果子条件不满足则返回true。
+ */
 class NotCondition(
     private val condition: Condition
 ) : Condition {

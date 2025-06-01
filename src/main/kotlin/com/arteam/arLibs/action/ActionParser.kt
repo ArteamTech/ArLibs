@@ -21,34 +21,42 @@ import com.arteam.arLibs.utils.Logger
 @Suppress("unused")
 object ActionParser {
     
-    private val SUPPORTED_TYPES = setOf("tell", "sound", "title", "actionbar", "command", "console", "delay")
+    private val SUPPORTED_TYPES = setOf("tell", "sound", "title", "actionbar", "command", "console", "delay", "conditional")
     
     /**
      * Parses a single action string into an Action object.
      * 将单个动作字符串解析为Action对象。
      *
-     * @param actionString The action string in format "type: value".
-     *                     格式为 "type: value" 的动作字符串。
+     * @param actionString The action string in format "type value".
+     *                     格式为 "type value" 的动作字符串。
      * @return The parsed Action, or null if parsing failed.
      *         解析后的Action，如果解析失败则返回null。
      */
     fun parseAction(actionString: String): Action? {
-        val trimmed = actionString.trim()
+        val trimmed = normalizeWhitespace(actionString)
         if (trimmed.isEmpty()) {
             Logger.debug("Empty action string provided")
             return null
         }
         
-        val colonIndex = trimmed.indexOf(':')
-        if (colonIndex == -1) {
-            Logger.warn("Invalid action format: '$actionString'. Expected format: 'type: value'")
+        // Special handling for conditional actions
+        if (trimmed.lowercase().startsWith("if ") && trimmed.lowercase().contains(" then ")) {
+            return ConditionalActionParser.parseConditionalAction(trimmed)
+        }
+        
+        // Parse format: "type value"
+        val parts = trimmed.split(Regex("\\s+"), 2)
+        val (type, value) = if (parts.size >= 2) {
+            parts[0].lowercase() to parts[1]
+        } else if (parts.size == 1) {
+            // Single word actions (like delay without value)
+            parts[0].lowercase() to ""
+        } else {
+            Logger.warn("Invalid action format: '$actionString'. Expected format: 'type value'")
             return null
         }
         
-        val type = trimmed.substring(0, colonIndex).trim().lowercase()
-        val value = trimmed.substring(colonIndex + 1).trim()
-        
-        if (value.isEmpty()) {
+        if (value.isEmpty() && type != "delay") {
             Logger.warn("Empty value for action type '$type' in: '$actionString'")
             return null
         }
@@ -66,7 +74,8 @@ object ActionParser {
                 "actionbar" -> ActionBarAction(value)
                 "command" -> CommandAction(value)
                 "console" -> ConsoleAction(value)
-                "delay" -> DelayAction.fromString(value)
+                "delay" -> DelayAction.fromString(value.ifEmpty { "1" })
+                "conditional" -> ConditionalActionParser.parseConditionalAction(value)
                 else -> {
                     Logger.warn("Unhandled action type: '$type'")
                     null
@@ -159,13 +168,14 @@ object ActionParser {
      */
     fun getActionHelp(): Map<String, String> {
         return mapOf(
-            "tell" to "tell: <message> - Send a text message",
-            "sound" to "sound: <sound>-<volume>-<pitch> - Play a sound",
-            "title" to "title: `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut> - Send a title",
-            "actionbar" to "actionbar: <message> - Send action bar message",
-            "command" to "command: <command> - Execute command as player",
-            "console" to "console: <command> - Execute command as console",
-            "delay" to "delay: <ticks> - Add delay in ticks"
+            "tell" to "tell <message> - Send a text message",
+            "sound" to "sound <sound>-<volume>-<pitch> - Play a sound",
+            "title" to "title `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut> - Send a title",
+            "actionbar" to "actionbar <message> - Send action bar message",
+            "command" to "command <command> - Execute command as player",
+            "console" to "console <command> - Execute command as console",
+            "delay" to "delay <ticks> - Add delay in ticks",
+            "conditional" to "if {condition} then {actions} [else {actions}] - Conditional execution"
         )
     }
     
@@ -184,20 +194,32 @@ object ActionParser {
             return ValidationResult(false, "Empty action string")
         }
         
-        val colonIndex = trimmed.indexOf(':')
-        if (colonIndex == -1) {
-            return ValidationResult(false, "Missing ':' separator. Expected format: 'type: value'")
+        // Special validation for conditional actions
+        if (trimmed.lowercase().startsWith("if ") && trimmed.lowercase().contains(" then ")) {
+            return if (ConditionalActionParser.isValidConditionalExpression(trimmed)) {
+                ValidationResult(true, null)
+            } else {
+                ValidationResult(false, "Invalid conditional action format")
+            }
         }
         
-        val type = trimmed.substring(0, colonIndex).trim().lowercase()
-        val value = trimmed.substring(colonIndex + 1).trim()
+        // Parse format: "type value"
+        val parts = trimmed.split(Regex("\\s+"), 2)
+        val (type, value) = if (parts.size >= 2) {
+            parts[0].lowercase() to parts[1]
+        } else if (parts.size == 1) {
+            // Single word actions
+            parts[0].lowercase() to ""
+        } else {
+            return ValidationResult(false, "Invalid action format. Expected format: 'type value'")
+        }
         
         if (type.isEmpty()) {
             return ValidationResult(false, "Empty action type")
         }
         
-        if (value.isEmpty()) {
-            return ValidationResult(false, "Empty action value")
+        if (value.isEmpty() && type != "delay") {
+            return ValidationResult(false, "Empty action value for type '$type'")
         }
         
         if (!SUPPORTED_TYPES.contains(type)) {
@@ -215,4 +237,17 @@ object ActionParser {
         val isValid: Boolean,
         val errorMessage: String?
     )
+    
+    /**
+     * Normalizes whitespace in action strings for more flexible parsing.
+     * 标准化动作字符串中的空格以实现更灵活的解析。
+     *
+     * @param input The input string to normalize.
+     *              要标准化的输入字符串。
+     * @return The normalized string.
+     *         标准化后的字符串。
+     */
+    private fun normalizeWhitespace(input: String): String {
+        return input.trim().replace(Regex("\\s+"), " ")
+    }
 } 

@@ -14,6 +14,13 @@ package com.arteam.arLibs.condition.conditions
 import com.arteam.arLibs.condition.Condition
 import org.bukkit.entity.Player
 
+/**
+ * Condition implementation for checking player permissions.
+ * Supports both positive and negative permission checks.
+ *
+ * 用于检查玩家权限的条件实现。
+ * 支持正向和负向权限检查。
+ */
 class PermissionCondition(
     private val permission: String,
     private val negate: Boolean = false

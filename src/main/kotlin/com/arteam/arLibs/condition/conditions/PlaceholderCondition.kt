@@ -18,6 +18,13 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import kotlin.text.Regex
 
+/**
+ * Condition implementation for checking PlaceholderAPI placeholder values.
+ * Supports arithmetic comparisons and string equality checks.
+ *
+ * 用于检查PlaceholderAPI占位符值的条件实现。
+ * 支持算术比较和字符串相等检查。
+ */
 class PlaceholderCondition(
     private val placeholder: String,
     private val operator: ComparisonOperator? = null,

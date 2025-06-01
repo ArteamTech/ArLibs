@@ -11,6 +11,9 @@
  */
 package com.arteam.arLibs.action
 
+import com.arteam.arLibs.action.actions.ConditionalAction
+import com.arteam.arLibs.condition.Condition
+import com.arteam.arLibs.condition.ConditionParser
 import com.arteam.arLibs.utils.Logger
 import kotlinx.coroutines.Job
 import org.bukkit.entity.Player
@@ -91,6 +94,73 @@ object ActionAPI {
     }
     
     /**
+     * Executes a conditional action (If-Then-Else) for a player.
+     * 为玩家执行条件动作（If-Then-Else）。
+     *
+     * @param player The player to execute the conditional action for.
+     *               要执行条件动作的玩家。
+     * @param conditionExpression The condition expression to evaluate.
+     *                            要评估的条件表达式。
+     * @param thenActions The actions to execute if condition is true.
+     *                    条件为真时执行的动作。
+     * @param elseActions The actions to execute if condition is false (optional).
+     *                    条件为假时执行的动作（可选）。
+     * @return A Job that can be used to cancel the execution, or null if parsing failed.
+     *         可用于取消执行的Job，如果解析失败则返回null。
+     */
+    fun executeConditionalAction(
+        player: Player, 
+        conditionExpression: String, 
+        thenActions: List<String>, 
+        elseActions: List<String>? = null
+    ): Job? {
+        val condition = ConditionParser.parse(conditionExpression)
+        if (condition == null) {
+            Logger.warn("Failed to parse condition: $conditionExpression")
+            return null
+        }
+        
+        val thenActionGroup = ActionParser.parseActionGroup(thenActions)
+        val elseActionGroup = elseActions?.let { ActionParser.parseActionGroup(it) }
+        
+        val conditionalAction = if (elseActionGroup != null) {
+            ConditionalAction.ifThenElse(condition, thenActionGroup, elseActionGroup)
+        } else {
+            ConditionalAction.ifThen(condition, thenActionGroup)
+        }
+        
+        val actionGroup = ActionGroup(listOf(conditionalAction))
+        return actionGroup.executeAsync(player) { result ->
+            Logger.debug("Conditional action execution completed: ${result.getSummary()}")
+        }
+    }
+    
+    /**
+     * Creates a conditional action from components.
+     * 从组件创建条件动作。
+     *
+     * @param condition The condition to evaluate.
+     *                  要评估的条件。
+     * @param thenActions The actions to execute if condition is true.
+     *                    条件为真时执行的动作。
+     * @param elseActions The actions to execute if condition is false (optional).
+     *                    条件为假时执行的动作（可选）。
+     * @return The created ConditionalAction.
+     *         创建的ConditionalAction。
+     */
+    fun createConditionalAction(
+        condition: Condition, 
+        thenActions: ActionGroup, 
+        elseActions: ActionGroup? = null
+    ): ConditionalAction {
+        return if (elseActions != null) {
+            ConditionalAction.ifThenElse(condition, thenActions, elseActions)
+        } else {
+            ConditionalAction.ifThen(condition, thenActions)
+        }
+    }
+    
+    /**
      * Creates an ActionGroup from action strings.
      * 从动作字符串创建ActionGroup。
      *
@@ -139,6 +209,17 @@ object ActionAPI {
     }
     
     /**
+     * Gets help information for conditional action format.
+     * 获取条件动作格式的帮助信息。
+     *
+     * @return Help text for conditional actions.
+     *         条件动作的帮助文本。
+     */
+    fun getConditionalActionHelp(): String {
+        return ConditionalActionParser.getHelpText()
+    }
+    
+    /**
      * Validates an action string without executing it.
      * 验证动作字符串而不执行它。
      *
@@ -149,6 +230,19 @@ object ActionAPI {
      */
     fun validateAction(actionString: String): Boolean {
         return ActionParser.parseAction(actionString) != null
+    }
+    
+    /**
+     * Validates a conditional action expression without executing it.
+     * 验证条件动作表达式而不执行它。
+     *
+     * @param conditionalExpression The conditional action expression to validate.
+     *                              要验证的条件动作表达式。
+     * @return True if the expression is valid, false otherwise.
+     *         如果表达式有效则返回true，否则返回false。
+     */
+    fun validateConditionalAction(conditionalExpression: String): Boolean {
+        return ConditionalActionParser.parseConditionalAction(conditionalExpression) != null
     }
     
     /**
