@@ -1,0 +1,201 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# ArLibs API 使用指南
+
+本指南介绍如何使用 ArLibs 提供的各种 API 来开发插件功能。
+
+## Action API 使用
+
+### 基本动作执行
+```kotlin
+// 导入 Action API
+import com.arteam.arLibs.action.ActionAPI
+
+// 执行单个动作
+val job = ActionAPI.executeAction(player, "tell Hello, %player%!")
+
+// 执行多个动作
+val actions = listOf(
+    "tell Welcome to the server!",
+    "sound ENTITY_EXPERIENCE_ORB_PICKUP-1.0-1.0",
+    "delay 20",
+    "title `Welcome` `Enjoy your stay!` 10 70 20"
+)
+ActionAPI.executeActions(player, actions)
+```
+
+### 条件动作执行
+```kotlin
+// If-Then-Else 条件动作
+ActionAPI.executeConditionalAction(
+    player = player,
+    conditionExpression = "permission essentials.fly",
+    thenActions = listOf("tell You can fly!", "command fly"),
+    elseActions = listOf("tell No fly permission!")
+)
+```
+
+### 参考文件
+- [ActionAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/action/ActionAPI.kt): 主要API接口
+- [Action.kt](mdc:src/main/kotlin/com/arteam/arLibs/action/Action.kt): 动作基础接口
+
+## Condition API 使用
+
+### 基本条件评估
+```kotlin
+// 导入 Condition API
+import com.arteam.arLibs.condition.ConditionAPI
+
+// 评估单个条件
+val hasPermission = ConditionAPI.evaluate(player, "permission admin.access")
+
+// 评估多个条件（全部必须满足）
+val allMet = ConditionAPI.evaluateAll(player, listOf(
+    "permission admin.access",
+    "papi %player_level% >= 10"
+))
+
+// 评估多个条件（任一满足即可）
+val anyMet = ConditionAPI.evaluateAny(player, 
+    "permission admin.access",
+    "permission moderator.access"
+)
+```
+
+### 条件表达式格式
+```kotlin
+// 权限条件
+"permission admin.access"
+"permission !banned.user"  // 否定权限
+
+// PlaceholderAPI 条件
+"papi %player_level% >= 10"
+"papi %player_gamemode% == CREATIVE"
+
+// 复合条件
+"any [permission admin.access; permission moderator.access]"
+"all [permission user.basic; papi %player_level% >= 5]"
+"not permission banned.user"
+```
+
+### 参考文件
+- [ConditionAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/condition/ConditionAPI.kt): 主要API接口
+- [Condition.kt](mdc:src/main/kotlin/com/arteam/arLibs/condition/Condition.kt): 条件基础接口
+
+## Command API 使用
+
+### 注册命令
+```kotlin
+// 导入 Command API
+import com.arteam.arLibs.command.CommandAPI
+
+// 注册单个命令
+CommandAPI.registerCommand(plugin, MyCommand::class)
+
+// 注册多个命令
+CommandAPI.registerCommands(plugin, 
+    MyCommand::class, 
+    AnotherCommand::class
+)
+```
+
+### 创建命令类
+```kotlin
+@Command(
+    name = "mycommand",
+    description = "My custom command",
+    aliases = ["mc", "mycmd"]
+)
+class MyCommand : BaseCommand() {
+    
+    override fun execute(context: CommandContext): CommandResult {
+        send("Hello from my command!")
+        return CommandResult.SUCCESS
+    }
+    
+    @SubCommand(name = "test", description = "Test subcommand")
+    fun testCommand(context: CommandContext): CommandResult {
+        sendSuccess("Test successful!")
+        return CommandResult.SUCCESS
+    }
+}
+```
+
+### 参考文件
+- [CommandAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/command/CommandAPI.kt): 主要API接口
+- [BaseCommand.kt](mdc:src/main/kotlin/com/arteam/arLibs/command/BaseCommand.kt): 命令基类
+- [ArLibsCommand.kt](mdc:src/main/kotlin/com/arteam/arLibs/command/ArLibsCommand.kt): 实际示例
+
+## Config API 使用
+
+### 定义配置类
+```kotlin
+@Config(fileName = "myconfig", comments = ["My plugin configuration"])
+class MyConfig {
+    
+    @ConfigValue(
+        path = "database.host",
+        defaultValue = "localhost",
+        comments = ["Database host address"]
+    )
+    var databaseHost: String = "localhost"
+    
+    @ConfigValue(path = "database.port", defaultValue = "3306")
+    var databasePort: Int = 3306
+}
+```
+
+### 使用配置
+```kotlin
+// 注册配置
+val config = ConfigManager.register(MyConfig::class)
+
+// 访问配置值
+val host = config.databaseHost
+val port = config.databasePort
+
+// 保存配置
+ConfigManager.saveConfig(MyConfig::class)
+
+// 重新加载配置
+ConfigManager.reloadConfig(MyConfig::class)
+```
+
+### 参考文件
+- [ConfigAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/config/ConfigAPI.kt): 主要API接口
+- [ConfigManager.kt](mdc:src/main/kotlin/com/arteam/arLibs/config/ConfigManager.kt): 配置管理器
+- [CoreConfig.kt](mdc:src/main/kotlin/com/arteam/arLibs/config/CoreConfig.kt): 配置示例
+
+## 最佳实践
+
+### 错误处理
+```kotlin
+// Action API 错误处理
+val job = ActionAPI.executeAction(player, actionString)
+if (job == null) {
+    logger.warning("Failed to parse action: $actionString")
+}
+
+// Condition API 验证
+if (!ConditionAPI.isValidExpression(expression)) {
+    logger.warning("Invalid condition expression: $expression")
+    return
+}
+```
+
+### 异步执行
+```kotlin
+// Action 系统自动处理异步执行
+ActionAPI.executeActions(player, actions) { result ->
+    logger.info("Actions completed: ${result.getSummary()}")
+}
+```
+
+### 缓存优化
+```kotlin
+// Condition 系统内置缓存，可以清理缓存
+ConditionAPI.clearCache()
+```
