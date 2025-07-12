@@ -15,6 +15,8 @@ import com.arteam.arLibs.command.ArLibsCommand
 import com.arteam.arLibs.command.CommandManager
 import com.arteam.arLibs.config.ConfigManager
 import com.arteam.arLibs.config.CoreConfig
+import com.arteam.arLibs.language.LanguageConfig
+import com.arteam.arLibs.language.LanguageManager
 import com.arteam.arLibs.utils.Logger
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -38,6 +40,9 @@ class ArLibs : JavaPlugin() {
     // Core configuration
     private lateinit var coreConfig: CoreConfig
     
+    // Language configuration
+    private lateinit var languageConfig: LanguageConfig
+    
     @Suppress("UnstableApiUsage")
     override fun onEnable() {
         instance = this
@@ -59,6 +64,17 @@ class ArLibs : JavaPlugin() {
             return
         }
         
+        // Initialize language configuration
+        try {
+            languageConfig = ConfigManager.register(LanguageConfig::class)
+            logger.info("Language configuration loaded successfully")
+        } catch (e: Exception) {
+            logger.severe("Failed to load language configuration: ${e.message}")
+            e.printStackTrace()
+            server.pluginManager.disablePlugin(this)
+            return
+        }
+        
         // Initialize the logger with debug setting from config
         Logger.init(coreConfig.debug)
         
@@ -67,6 +83,17 @@ class ArLibs : JavaPlugin() {
         Logger.info("Version: &e${pluginMeta.version}")
         Logger.info("Author: &e${pluginMeta.authors.joinToString(", ")}")
         Logger.info("Debug mode: &e${if (coreConfig.debug) "Enabled" else "Disabled"}")
+        
+        // Initialize language system
+        try {
+            LanguageManager.initialize(this, languageConfig)
+            Logger.info("Language system initialized successfully")
+        } catch (e: Exception) {
+            Logger.severe("Failed to initialize language system: ${e.message}")
+            e.printStackTrace()
+            server.pluginManager.disablePlugin(this)
+            return
+        }
         
         // Initialize other configurations if needed
         // TODO: Add other configuration registrations here
@@ -94,6 +121,7 @@ class ArLibs : JavaPlugin() {
         // Save all configurations before shutdown
         try {
             ConfigManager.saveConfig(CoreConfig::class)
+            ConfigManager.saveConfig(LanguageConfig::class)
             Logger.info("Configurations saved successfully")
         } catch (e: Exception) {
             Logger.warn("Failed to save configurations: ${e.message}")

@@ -441,13 +441,11 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
         
         when {
             context.args.size == 1 -> {
-                // Add subcommands
+                // Add subcommands (only main names, not aliases for cleaner experience)
                 commandInfo.subCommands.values.distinctBy { it.name }.sortedBy { it.name }.forEach { subCmd ->
                     if (hasPermission(context.sender, subCmd.permission, subCmd.permissions)) {
                         if (subCmd.name.startsWith(context.args[0], ignoreCase = true)) completions.add(subCmd.name)
-                        subCmd.aliases.sorted().forEach { alias ->
-                            if (alias.startsWith(context.args[0], ignoreCase = true)) completions.add(alias)
-                        }
+                        // Only add aliases if explicitly configured via TabComplete annotation
                     }
                 }
                 completions.addAll(getTabCompleterResults(context))
@@ -460,11 +458,10 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
                 }
             }
             else -> {
-                // No args, show all subcommands
+                // No args, show all subcommands (only main names, not aliases for cleaner experience)
                 commandInfo.subCommands.values.distinctBy { it.name }.sortedBy { it.name }.forEach { subCmd ->
                     if (hasPermission(context.sender, subCmd.permission, subCmd.permissions)) {
                         completions.add(subCmd.name)
-                        completions.addAll(subCmd.aliases.sorted())
                     }
                 }
                 completions.addAll(getTabCompleterResults(context))

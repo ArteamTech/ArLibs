@@ -12,6 +12,8 @@
 package com.arteam.arLibs.command
 
 import com.arteam.arLibs.utils.ColorUtil
+import com.arteam.arLibs.language.LanguageAPI
+import org.bukkit.entity.Player
 
 /**
  * Feedback message types for command results.
@@ -120,6 +122,152 @@ abstract class BaseCommand {
     
     /** Send an info message. 发送信息消息。 */
     protected fun sendInfo(message: String) = getCurrentContext().sender.sendMessage(ColorUtil.process("&b$message"))
+    
+    // Unified message sending methods with language support / 支持语言的统一消息发送方法
+    
+    /**
+     * Send a localized message that adapts to player/console automatically.
+     * 发送自动适应玩家/控制台的本地化消息。
+     *
+     * @param messageKey The language key for the message.
+     *                   消息的语言键。
+     * @param placeholders Map of placeholder keys to replacement values.
+     *                    占位符键到替换值的映射。
+     * @param fallbackMessage Fallback message if language key is not found.
+     *                        如果找不到语言键时的回退消息。
+     */
+    protected fun sendLocalized(messageKey: String, placeholders: Map<String, String> = emptyMap(), fallbackMessage: String? = null) {
+        val context = getCurrentContext()
+        val message = when (context.sender) {
+            is Player -> LanguageAPI.getMessage(context.sender, messageKey, placeholders)
+            else -> fallbackMessage ?: LanguageAPI.getMessage(messageKey, placeholders)
+        }
+        send(message)
+    }
+    
+    /**
+     * Send multiple localized messages.
+     * 发送多条本地化消息。
+     *
+     * @param messages List of message keys and their fallback messages.
+     *                 消息键和回退消息的列表。
+     */
+    protected fun sendLocalized(vararg messages: Pair<String, String?>) {
+        messages.forEach { (key, fallback) ->
+            sendLocalized(key, fallbackMessage = fallback)
+        }
+    }
+    
+    /**
+     * Send a localized error message.
+     * 发送本地化错误消息。
+     *
+     * @param messageKey The language key for the error message.
+     *                   错误消息的语言键。
+     * @param placeholders Map of placeholder keys to replacement values.
+     *                    占位符键到替换值的映射。
+     * @param fallbackMessage Fallback error message.
+     *                        回退错误消息。
+     */
+    protected fun sendLocalizedError(messageKey: String, placeholders: Map<String, String> = emptyMap(), fallbackMessage: String? = null) {
+        val context = getCurrentContext()
+        val message = when (context.sender) {
+            is Player -> LanguageAPI.getMessage(context.sender, messageKey, placeholders)
+            else -> fallbackMessage ?: LanguageAPI.getMessage(messageKey, placeholders)
+        }
+        sendError(message)
+    }
+    
+    /**
+     * Send a localized success message.
+     * 发送本地化成功消息。
+     *
+     * @param messageKey The language key for the success message.
+     *                   成功消息的语言键。
+     * @param placeholders Map of placeholder keys to replacement values.
+     *                    占位符键到替换值的映射。
+     * @param fallbackMessage Fallback success message.
+     *                        回退成功消息。
+     */
+    protected fun sendLocalizedSuccess(messageKey: String, placeholders: Map<String, String> = emptyMap(), fallbackMessage: String? = null) {
+        val context = getCurrentContext()
+        val message = when (context.sender) {
+            is Player -> LanguageAPI.getMessage(context.sender, messageKey, placeholders)
+            else -> fallbackMessage ?: LanguageAPI.getMessage(messageKey, placeholders)
+        }
+        sendSuccess(message)
+    }
+    
+    /**
+     * Send a localized warning message.
+     * 发送本地化警告消息。
+     *
+     * @param messageKey The language key for the warning message.
+     *                   警告消息的语言键。
+     * @param placeholders Map of placeholder keys to replacement values.
+     *                    占位符键到替换值的映射。
+     * @param fallbackMessage Fallback warning message.
+     *                        回退警告消息。
+     */
+    protected fun sendLocalizedWarning(messageKey: String, placeholders: Map<String, String> = emptyMap(), fallbackMessage: String? = null) {
+        val context = getCurrentContext()
+        val message = when (context.sender) {
+            is Player -> LanguageAPI.getMessage(context.sender, messageKey, placeholders)
+            else -> fallbackMessage ?: LanguageAPI.getMessage(messageKey, placeholders)
+        }
+        sendWarning(message)
+    }
+    
+    /**
+     * Check if the sender is a player.
+     * 检查发送者是否为玩家。
+     *
+     * @return true if the sender is a player, false otherwise.
+     *         如果发送者是玩家则返回true，否则返回false。
+     */
+    protected fun isPlayer(): Boolean = getCurrentContext().sender is Player
+    
+    /**
+     * Get the player sender, or null if it's console.
+     * 获取玩家发送者，如果是控制台则返回null。
+     *
+     * @return The player sender, or null if console.
+     *         玩家发送者，如果是控制台则返回null。
+     */
+    protected fun getPlayerOrNull(): Player? = getCurrentContext().sender as? Player
+    
+    /**
+     * Get the player sender, throwing an exception if it's console.
+     * 获取玩家发送者，如果是控制台则抛出异常。
+     *
+     * @return The player sender.
+     *         玩家发送者。
+     * @throws IllegalStateException if the sender is not a player.
+     *                               如果发送者不是玩家则抛出IllegalStateException。
+     */
+    protected fun getPlayer(): Player = getCurrentContext().sender as? Player 
+        ?: throw IllegalStateException("This command requires a player sender")
+    
+    /**
+     * Get a localized message for the current sender.
+     * 为当前发送者获取本地化消息。
+     *
+     * @param messageKey The language key for the message.
+     *                   消息的语言键。
+     * @param placeholders Map of placeholder keys to replacement values.
+     *                    占位符键到替换值的映射。
+     * @param fallback Fallback message if language key is not found.
+     *                 如果找不到语言键时的回退消息。
+     * @return The localized message.
+     *         本地化消息。
+     */
+    protected fun getLocalizedMessage(messageKey: String, placeholders: Map<String, String> = emptyMap(), fallback: String? = null): String {
+        val context = getCurrentContext()
+        return when (context.sender) {
+            is Player -> LanguageAPI.getMessage(context.sender, messageKey, placeholders)
+            else -> fallback ?: LanguageAPI.getMessage(messageKey, placeholders)
+        }
+    }
     
     /** Get current command context. 获取当前命令上下文。 */
     protected fun getCurrentContext(): CommandContext = 
