@@ -377,7 +377,13 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
     ): Boolean {
         return try {
             val context = CommandContext(sender, commandInfo.plugin, commandInfo.name, null, args, args, label)
-            val executionLogic = { if (args.isNotEmpty()) executeSubCommand(context, args) else executeMainCommand(context) }
+            val executionLogic = { 
+                if (args.isNotEmpty() && commandInfo.subCommands.isNotEmpty() && commandInfo.subCommands.containsKey(args[0].lowercase())) {
+                    executeSubCommand(context, args)
+                } else {
+                    executeMainCommand(context)
+                }
+            }
             
             val isAsync = commandInfo.async || (args.isNotEmpty() && commandInfo.subCommands[args[0].lowercase()]?.async == true)
             
@@ -460,7 +466,8 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
      * 执行子命令。
      */
     private fun executeSubCommand(context: CommandContext, args: Array<String>): CommandResult {
-        val subCommandInfo = commandInfo.subCommands[args[0].lowercase()] ?: return CommandResult.NOT_FOUND
+        val subCommandInfo = commandInfo.subCommands[args[0].lowercase()] 
+            ?: throw IllegalArgumentException("Subcommand ${args[0]} not found")
         val effectiveExecutor = combineExecutors(commandInfo.executor, subCommandInfo.executor)
         val subContext = context.copy(subCommand = subCommandInfo.name, args = args.sliceArray(1 until args.size))
         

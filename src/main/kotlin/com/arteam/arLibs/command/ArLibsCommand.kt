@@ -15,7 +15,6 @@ import com.arteam.arLibs.ArLibs
 import com.arteam.arLibs.command.annotations.*
 import com.arteam.arLibs.config.ConfigManager
 import com.arteam.arLibs.config.CoreConfig
-import com.arteam.arLibs.language.LanguageAPI
 import com.arteam.arLibs.utils.Logger
 import org.bukkit.Bukkit
 
@@ -292,7 +291,7 @@ class ArLibsCommand : BaseCommand() {
             CommandResult.SUCCESS
             
         } catch (e: Exception) {
-            sendLocalizedError("error.config_load", 
+            sendLocalizedError("errors.config_load", 
                 mapOf("error" to (e.message ?: "Unknown error")),
                 fallbackMessage = "Failed to reload configuration: ${e.message}")
             Logger.severe("Failed to reload configuration: ${e.message}")
@@ -327,7 +326,7 @@ class ArLibsCommand : BaseCommand() {
             CommandResult.SUCCESS
             
         } catch (e: Exception) {
-            sendLocalizedError("error.config_save", 
+            sendLocalizedError("errors.config_save", 
                 mapOf("error" to (e.message ?: "Unknown error")),
                 fallbackMessage = "Failed to toggle debug mode: ${e.message}")
             CommandResult.ERROR
@@ -490,109 +489,12 @@ class ArLibsCommand : BaseCommand() {
     }
 
     /**
-     * Language subcommand - manage language settings.
-     * 语言子命令 - 管理语言设置。
-     */
-    @SubCommand(
-        name = "language",
-        aliases = ["lang", "l"],
-        description = "Manage language settings",
-        minArgs = 0,
-        maxArgs = 3,
-        executor = CommandExecutor.PLAYER
-    )
-    @Permission("arlibs.command.language", defaultValue = PermissionDefault.OP)
-    fun languageCommand(context: CommandContext): CommandResult {
-        return when {
-            context.args.isEmpty() -> {
-                // Show current language
-                val currentLanguage = LanguageAPI.getPlayerLanguage(getPlayer())
-                val languageName = getLanguageDisplayName(currentLanguage)
-                
-                sendLocalized("language.current", mapOf("language" to languageName))
-                CommandResult.SUCCESS
-            }
-            
-            context.args.size == 1 -> {
-                val subCommand = context.args[0].lowercase()
-                
-                when (subCommand) {
-                    "list", "available" -> {
-                        // Show available languages
-                        val languages = LanguageAPI.getSupportedLanguages()
-                        val languageNames = languages.map { getLanguageDisplayName(it) }
-                        
-                        sendLocalized("language.available", mapOf("languages" to languageNames.joinToString(", ")))
-                        CommandResult.SUCCESS
-                    }
-                    
-                    "reload" -> {
-                        // Reload language files
-                        LanguageAPI.reloadLanguages()
-                        sendLocalizedSuccess("language.reloaded")
-                        CommandResult.SUCCESS
-                    }
-                    
-                    "help" -> {
-                        // Show help
-                        sendLocalized(
-                            "language.help.title" to null,
-                            "" to null,
-                            "language.help.current" to null,
-                            "language.help.set" to null,
-                            "language.help.list" to null,
-                            "language.help.reload" to null
-                        )
-                        CommandResult.SUCCESS
-                    }
-                    
-                    else -> {
-                        // Show usage
-                        sendLocalizedError("language.usage")
-                        CommandResult.ERROR
-                    }
-                }
-            }
-            
-            context.args.size == 2 -> {
-                val subCommand = context.args[0].lowercase()
-                
-                when (subCommand) {
-                    "set" -> {
-                        val language = context.args[1].lowercase()
-                        
-                        if (LanguageAPI.isLanguageSupported(language)) {
-                            LanguageAPI.setPlayerLanguage(getPlayer(), language)
-                            val languageName = getLanguageDisplayName(language)
-                            sendLocalizedSuccess("language.set", mapOf("language" to languageName))
-                            CommandResult.SUCCESS
-                        } else {
-                            sendLocalizedError("language.not_supported", mapOf("language" to language))
-                            CommandResult.ERROR
-                        }
-                    }
-                    
-                    else -> {
-                        sendLocalizedError("language.usage")
-                        CommandResult.ERROR
-                    }
-                }
-            }
-            
-            else -> {
-                sendLocalizedError("language.usage")
-                CommandResult.ERROR
-            }
-        }
-    }
-
-    /**
      * Tab completion for help subcommand.
      * 帮助子命令的Tab补全。
      */
     @TabComplete(subCommand = "help", argument = 0)
     fun helpTabComplete(context: CommandContext): List<String> = 
-        listOf("info", "commands", "reload", "debug", "version", "action", "condition", "language")
+        listOf("info", "commands", "reload", "debug", "version", "action", "condition")
 
     /**
      * Tab completion for commands subcommand.
@@ -607,57 +509,17 @@ class ArLibsCommand : BaseCommand() {
     }
 
     /**
-     * Tab completion for language subcommand.
-     * 语言子命令的Tab补全。
-     */
-    @TabComplete(subCommand = "language", argument = 0)
-    fun languageTabComplete(context: CommandContext): List<String> {
-        return listOf("set", "list", "reload", "help")
-    }
-
-    /**
-     * Tab completion for language set subcommand.
-     * 语言设置子命令的Tab补全。
-     */
-    @TabComplete(subCommand = "language", argument = 1)
-    fun languageSetTabComplete(context: CommandContext): List<String> {
-        return if (context.args.isNotEmpty() && context.args[0].lowercase() == "set") {
-            listOf("en", "zh_cn", "zh_tw")
-        } else {
-            emptyList()
-        }
-    }
-
-    /**
      * Global tab completion for the main command.
      * 主命令的全局Tab补全。
      */
     @TabComplete(argument = 0, priority = 1)
     fun globalTabComplete(context: CommandContext): List<String> {
-        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition", "language")
+        val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition")
         val input = context.args.lastOrNull() ?: ""
         return subCommands.filter { it.startsWith(input, ignoreCase = true) }
     }
 
     // Helper methods to reduce code duplication / 辅助方法以减少代码重复
-    
-    /**
-     * Converts language code to display name.
-     * 将语言代码转换为显示名称。
-     *
-     * @param languageCode The language code.
-     *                    语言代码。
-     * @return The display name for the language.
-     *         语言的显示名称。
-     */
-    private fun getLanguageDisplayName(languageCode: String): String = when (languageCode) {
-        "en" -> "English"
-        "zh_cn" -> "简体中文"
-        "zh_tw" -> "繁體中文"
-        else -> languageCode
-    }
-    
-
     
     /**
      * Validates command arguments and shows usage if invalid.

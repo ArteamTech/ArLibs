@@ -1,7 +1,5 @@
 # ArLibs 繁體中文語言檔案
-# ArLibs Traditional Chinese Language File
 
-# General messages
 # 通用訊息
 general:
   prefix: "&8[&bArLibs&8] &r"
@@ -12,7 +10,6 @@ general:
   player_only: "&c此指令只能由玩家使用。"
   console_only: "&c此指令只能從控制台使用。"
 
-# Command messages
 # 指令訊息
 command:
   reload:
@@ -22,15 +19,15 @@ command:
     enabled: "&a除錯模式已啟用"
     disabled: "&c除錯模式已停用"
   version:
-    title: "&6ArLibs Framework"
+    title: "&bArLibs &7版本資訊"
     version: "&7版本: &e{version}"
     author: "&7作者: &e{author}"
     description: "&7一個強大的 Minecraft 插件開發庫"
-    built_for: "&7建構目標: &eBukkit/Spigot/Paper"
+    built_for: "&7建置目標: &eBukkit/Spigot/Paper"
     api_version: "&7API 版本: &e{version}"
     debug_info: "&7除錯資訊:"
     plugin_file: "&7• 插件檔案: &e{file}"
-    data_folder: "&7• 資料資料夾: &e{folder}"
+    data_folder: "&7• 資料夾: &e{folder}"
     loaded: "&7• 已載入: &e{status}"
   about:
     title: "&6=== &eArLibs 系統資訊 &6==="
@@ -53,7 +50,7 @@ command:
   features:
     title: "功能特性"
     commands: "基於註解的指令系統"
-    config: "高級設定管理"
+    config: "進階設定管理"
     colors: "顏色處理工具"
     logging: "增強日誌系統"
   help:
@@ -63,7 +60,6 @@ command:
     success: "動作執行成功"
     parse_error: "解析動作表達式失敗"
     execution_error: "執行動作失敗: {error}"
-    no_expression: "請提供動作表達式"
     help:
       title: "&7支援的格式:"
       tell: "&7• tell <訊息>"
@@ -75,21 +71,11 @@ command:
       actionbar: "&7• actionbar <訊息>"
       title_format: "&7• title `<標題>` `<副標題>` <淡入> <停留> <淡出>"
   commands:
-    no_commands: "當前沒有通過 ArLibs 註冊的指令"
+    no_commands: "目前沒有透過 ArLibs 註冊的指令"
     no_commands_for_plugin: "未找到插件 {plugin} 的指令"
     title_for_plugin: "&6=== &e{plugin} 的指令 &6==="
     title_all: "&6=== &e所有已註冊指令 &6==="
     total: "&7總計: &e{count} 個指令"
-    help:
-      title: "&7支援的格式:"
-      tell: "&7• tell <訊息>"
-      sound: "&7• sound <音效>-<音量>-<音調>"
-      if: "&7• if {條件} then {動作} [else {動作}]"
-      delay: "&7• delay <延遲>"
-      command: "&7• command <指令>"
-      console: "&7• console <指令>"
-      actionbar: "&7• actionbar <訊息>"
-      title_format: "&7• title `<標題>` `<副標題>` <淡入> <停留> <淡出>"
   condition:
     evaluating: "&6正在評估條件: &e{expression}"
     invalid_syntax: "條件語法無效"
@@ -99,44 +85,38 @@ command:
     help:
       title: "&7支援的格式:"
       permission: "&7• permission <權限節點>"
-      papi: "&7• papi <佔位符> [操作符] [值]"
+      papi: "&7• papi <佔位符> [運算子] [值]"
       any: "&7• any [條件1; 條件2; ...]"
       all: "&7• all [條件1; 條件2; ...]"
       not: "&7• not <條件>"
 
-# Language system messages
 # 語言系統訊息
 language:
-  set: "&a您的語言已設定為: &e{language}"
-  current: "&7您目前的語言是: &e{language}"
-  available: "&7可用語言: &e{languages}"
   not_supported: "&c不支援語言 '{language}'。"
-  reloaded: "&a語言檔案重新載入成功！"
-  usage: "&c用法: &7/arlibs language <set|list|reload|help> [語言]"
-  help:
-    title: "&6語言系統幫助"
-    current: "&7/arlibs language &8- &f顯示您目前的語言"
-    set: "&7/arlibs language set <語言> &8- &f設定您的語言"
-    list: "&7/arlibs language list &8- &f顯示可用語言"
-    reload: "&7/arlibs language reload &8- &f重新載入語言檔案"
+  set_success: "&a語言已設定為: {language}"
+  # 獨立語言指令訊息
+  command:
+    title: "&6語言設定"
+    available_title: "&7可用語言:"
+    usage: "&7用法: &e/language <語言>"
+    example: "&7範例: &e/language zh_tw"
+    language_format: "&7  {code} - {name}"
+    current_format: "&7  {code} - {name} &7(當前)"
 
-# Error messages
 # 錯誤訊息
-error:
+errors:
   config_load: "載入設定失敗: {error}"
   config_save: "儲存設定失敗: {error}"
   language_load: "載入語言檔案失敗: {error}"
   command_execution: "執行指令失敗: {error}"
   invalid_usage: "指令用法無效。使用: {usage}"
 
-# Success messages
 # 成功訊息
 success:
   config_saved: "設定儲存成功！"
   language_changed: "語言變更成功！"
   command_executed: "指令執行成功！"
 
-# Help messages
 # 幫助訊息
 help:
   title: "&bArLibs &7幫助"
@@ -152,7 +132,6 @@ help:
   reload: "&7/arlibs reload &8- &f重新載入設定"
   debug: "&7/arlibs debug &8- &f切換除錯模式"
   version: "&7/arlibs version &8- &f顯示版本資訊"
-  language: "&7/arlibs language set <語言> &8- &f設定您的語言"
   action: "&7/arlibs action <表達式> &8- &f執行動作表達式"
   condition: "&7/arlibs condition <表達式> &8- &f評估條件表達式"
   info: "&7/arlibs info &8- &f顯示詳細系統資訊"
@@ -162,11 +141,10 @@ help:
   subcommand:
     help: "顯示幫助資訊和可用指令"
     info: "顯示詳細的 ArLibs 系統資訊"
-    commands: "列出通過 ArLibs 註冊的所有指令"
+    commands: "列出透過 ArLibs 註冊的所有指令"
     reload: "重新載入 ArLibs 設定"
     debug: "切換除錯模式開關"
     version: "顯示 ArLibs 版本資訊"
     action: "直接執行動作表達式"
     condition: "直接評估條件表達式"
-    language: "管理語言設定"
     about: "顯示詳細的 ArLibs 系統資訊" 

@@ -41,7 +41,8 @@ object LanguageAPI {
      * 为玩家获取消息，使用其首选语言。
      */
     fun getMessage(player: Player, key: String, placeholders: Map<String, String> = emptyMap()): String {
-        return LanguageManager.getMessageForPlayer(player.name, key, placeholders)
+        val playerLanguage = PlayerLanguageManager.getPlayerLanguage(player)
+        return LanguageManager.getMessage(playerLanguage, key, placeholders)
     }
 
     /**
@@ -73,7 +74,8 @@ object LanguageAPI {
      * 为玩家获取消息列表，使用其首选语言。
      */
     fun getMessageList(player: Player, key: String, placeholders: Map<String, String> = emptyMap()): List<String> {
-        return LanguageManager.getMessageList(LanguageManager.getPlayerLanguage(player.name), key, placeholders)
+        val playerLanguage = PlayerLanguageManager.getPlayerLanguage(player)
+        return LanguageManager.getMessageList(playerLanguage, key, placeholders)
     }
 
     /**
@@ -81,7 +83,7 @@ object LanguageAPI {
      * 设置玩家的首选语言。
      */
     fun setPlayerLanguage(player: Player, language: String) {
-        LanguageManager.setPlayerLanguage(player.name, language)
+        PlayerLanguageManager.setPlayerLanguage(player, language)
     }
 
     /**
@@ -97,7 +99,7 @@ object LanguageAPI {
      * 获取玩家的首选语言。
      */
     fun getPlayerLanguage(player: Player): String {
-        return LanguageManager.getPlayerLanguage(player.name)
+        return PlayerLanguageManager.getPlayerLanguage(player)
     }
 
     /**

@@ -1,8 +1,6 @@
 # ArLibs English Language File
-# ArLibs 英文语言文件
 
 # General messages
-# 通用消息
 general:
   prefix: "&8[&bArLibs&8] &r"
   reloading: "&7Reloading configuration..."
@@ -13,7 +11,6 @@ general:
   console_only: "&cThis command can only be used from console."
 
 # Command messages
-# 命令消息
 command:
   reload:
     success: "&aArLibs configuration reloaded successfully!"
@@ -80,16 +77,6 @@ command:
     title_for_plugin: "&6=== &eCommands for {plugin} &6==="
     title_all: "&6=== &eAll Registered Commands &6==="
     total: "&7Total: &e{count} command(s)"
-    help:
-      title: "&7Supported formats:"
-      tell: "&7• tell <message>"
-      sound: "&7• sound <sound>-<volume>-<pitch>"
-      if: "&7• if {condition} then {actions} [else {actions}]"
-      delay: "&7• delay <ticks>"
-      command: "&7• command <command>"
-      console: "&7• console <command>"
-      actionbar: "&7• actionbar <message>"
-      title_format: "&7• title `<title>` `<subtitle>` <fadeIn> <stay> <fadeOut>"
   condition:
     evaluating: "&6Evaluating condition: &e{expression}"
     invalid_syntax: "Invalid condition syntax"
@@ -105,24 +92,20 @@ command:
       not: "&7• not <condition>"
 
 # Language system messages
-# 语言系统消息
 language:
-  set: "&aYour language has been set to: &e{language}"
-  current: "&7Your current language is: &e{language}"
-  available: "&7Available languages: &e{languages}"
   not_supported: "&cLanguage '{language}' is not supported."
-  reloaded: "&aLanguage files reloaded successfully!"
-  usage: "&cUsage: &7/arlibs language <set|list|reload|help> [language]"
-  help:
-    title: "&6Language System Help"
-    current: "&7/arlibs language &8- &fShow your current language"
-    set: "&7/arlibs language set <language> &8- &fSet your language"
-    list: "&7/arlibs language list &8- &fShow available languages"
-    reload: "&7/arlibs language reload &8- &fReload language files"
+  set_success: "&aLanguage set to: {language}"
+  # Independent language command messages
+  command:
+    title: "&6Language Settings"
+    available_title: "&7Available languages:"
+    usage: "&7Usage: &e/language <language>"
+    example: "&7Example: &e/language zh_cn"
+    language_format: "&7  {code} - {name}"
+    current_format: "&7  {code} - {name} &7(current)"
 
 # Error messages
-# 错误消息
-error:
+errors:
   config_load: "Failed to load configuration: {error}"
   config_save: "Failed to save configuration: {error}"
   language_load: "Failed to load language file: {error}"
@@ -130,7 +113,6 @@ error:
   invalid_usage: "Invalid command usage. Use: {usage}"
 
 # Success messages
-# 成功消息
 success:
   config_saved: "Configuration saved successfully!"
   language_changed: "Language changed successfully!"
@@ -138,27 +120,26 @@ success:
 
 # Help messages
 # 帮助消息
-  help:
-    title: "&bArLibs &7Help"
-    available_commands: "&7Available commands:"
-    main_description: "A powerful library for Bukkit plugins"
-    specific_help: "&7Use &e/arlibs help <subcommand_name> &7for specific help."
-    command_title: "&6Help: &e{command}"
-    description: "&7Description: &f{description}"
-    aliases: "&7Aliases: &f{aliases}"
-    permission: "&7Permission: &f{permission}"
-    executor: "&7Executor: &f{executor}"
-    no_description: "No description available."
-    reload: "&7/arlibs reload &8- &fReload configuration"
-    debug: "&7/arlibs debug &8- &fToggle debug mode"
-    version: "&7/arlibs version &8- &fShow version information"
-    language: "&7/arlibs language set <language> &8- &fSet your language"
-    action: "&7/arlibs action <expression> &8- &fExecute action expressions"
-    condition: "&7/arlibs condition <expression> &8- &fEvaluate condition expressions"
-    info: "&7/arlibs info &8- &fShow detailed system information"
-    commands: "&7/arlibs commands &8- &fList all registered commands"
-    about: "&7/arlibs about &8- &fShow detailed system information"
-    command: "&7/arlibs command &8- &fList all registered commands"
+help:
+  title: "&bArLibs &7Help"
+  available_commands: "&7Available commands:"
+  main_description: "A powerful library for Bukkit plugins"
+  specific_help: "&7Use &e/arlibs help <subcommand_name> &7for specific help."
+  command_title: "&6Help: &e{command}"
+  description: "&7Description: &f{description}"
+  aliases: "&7Aliases: &f{aliases}"
+  permission: "&7Permission: &f{permission}"
+  executor: "&7Executor: &f{executor}"
+  no_description: "No description available."
+  reload: "&7/arlibs reload &8- &fReload configuration"
+  debug: "&7/arlibs debug &8- &fToggle debug mode"
+  version: "&7/arlibs version &8- &fShow version information"
+  action: "&7/arlibs action <expression> &8- &fExecute action expressions"
+  condition: "&7/arlibs condition <expression> &8- &fEvaluate condition expressions"
+  info: "&7/arlibs info &8- &fShow detailed system information"
+  commands: "&7/arlibs commands &8- &fList all registered commands"
+  about: "&7/arlibs about &8- &fShow detailed system information"
+  command: "&7/arlibs command &8- &fList all registered commands"
   subcommand:
     help: "Show help information and available commands"
     info: "Show detailed ArLibs system information"
@@ -168,15 +149,4 @@ success:
     version: "Show ArLibs version information"
     action: "Execute action expressions directly"
     condition: "Evaluate condition expressions directly"
-    language: "Manage language settings"
-    about: "Show detailed ArLibs system information"
-  subcommand:
-    help: "Show help information and available commands"
-    info: "Show detailed ArLibs system information"
-    commands: "List all commands registered through ArLibs"
-    reload: "Reload ArLibs configuration"
-    debug: "Toggle debug mode on/off"
-    version: "Show ArLibs version information"
-    action: "Execute action expressions directly"
-    condition: "Evaluate condition expressions directly"
-    language: "Manage language settings" 
+    about: "Show detailed ArLibs system information" 
