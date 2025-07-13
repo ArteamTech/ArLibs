@@ -129,11 +129,54 @@ object LanguageManager {
         
         try {
             val config = YamlConfiguration.loadConfiguration(file)
+            
+            // Validate the language file
+            if (!validateLanguageFile(config, language)) {
+                Logger.warn("Language file validation failed: $language.yml")
+                return
+            }
+            
             languageCache[language] = config
             Logger.debug("Loaded language file: $language.yml")
         } catch (e: Exception) {
             Logger.severe("Failed to load language file: $language.yml - ${e.message}")
         }
+    }
+
+    /**
+     * Validates a language file for required keys and format.
+     * 验证语言文件的必需键和格式。
+     *
+     * @param config The configuration to validate.
+     *               要验证的配置。
+     * @param language The language code for error reporting.
+     *                 用于错误报告的语言代码。
+     * @return True if the file is valid, false otherwise.
+     *         如果文件有效则返回true，否则返回false。
+     */
+    private fun validateLanguageFile(config: YamlConfiguration, language: String): Boolean {
+        // Check if the file is empty or has no keys
+        if (config.getKeys(false).isEmpty()) {
+            Logger.warn("Language file is empty: $language.yml")
+            return false
+        }
+        
+        // Check for required keys (you can customize this list)
+        val requiredKeys = listOf("general", "errors", "success")
+        val missingKeys = mutableListOf<String>()
+        
+        requiredKeys.forEach { key ->
+            if (!config.contains(key)) {
+                missingKeys.add(key)
+            }
+        }
+        
+        if (missingKeys.isNotEmpty()) {
+            Logger.warn("Missing required keys in language file $language.yml: ${missingKeys.joinToString(", ")}")
+            // Don't fail completely, just warn
+        }
+        
+        return true
     }
 
     /**
@@ -147,8 +190,8 @@ object LanguageManager {
     }
 
     /**
-     * Gets a message for a specific language and key.
-     * 获取特定语言和键的消息。
+     * Gets a message for a specific language and key with improved error handling.
+     * 获取特定语言和键的消息，改进错误处理。
      *
      * @param language The language code.
      *                 语言代码。
@@ -165,6 +208,12 @@ object LanguageManager {
             return key
         }
         
+        // Validate input parameters
+        if (language.isBlank() || key.isBlank()) {
+            Logger.warn("Invalid parameters: language='$language', key='$key'")
+            return key
+        }
+        
         val message = getRawMessage(language, key)
         
         if (message == null) {
@@ -174,7 +223,12 @@ object LanguageManager {
             return key
         }
         
-        return MessageFormatter.format(message, placeholders)
+        return try {
+            MessageFormatter.format(message, placeholders)
+        } catch (e: Exception) {
+            Logger.warn("Failed to format message for key '$key' in language '$language': ${e.message}")
+            message // Return unformatted message as fallback
+        }
     }
 
     /**

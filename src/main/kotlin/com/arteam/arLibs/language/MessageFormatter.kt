@@ -13,12 +13,40 @@ package com.arteam.arLibs.language
 
 import com.arteam.arLibs.utils.ColorUtil
 import com.arteam.arLibs.utils.Logger
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Message formatter for processing and formatting language messages.
  * 用于处理和格式化语言消息的消息格式化器。
  */
 object MessageFormatter {
+
+    // Cache for compiled regex patterns to improve performance
+    private val placeholderRegex = Regex("\\{([^}]+)}")
+    
+    // Cache for different placeholder styles
+    private val placeholderRegexCache = ConcurrentHashMap<String, Regex>()
+    
+    // Cache for formatted messages to avoid repeated processing
+    private val messageCache = ConcurrentHashMap<String, String>()
+    
+    // Maximum cache size to prevent memory leaks
+    private const val MAX_CACHE_SIZE = 1000
+
+    /**
+     * Gets the appropriate regex pattern for the given placeholder style.
+     * 获取给定占位符样式的适当正则表达式模式。
+     */
+    private fun getPlaceholderRegex(style: String): Regex {
+        return placeholderRegexCache.getOrPut(style) {
+            when (style.lowercase()) {
+                "square_brackets" -> Regex("\\[([^\\]]+)]")
+                "percent_signs" -> Regex("%([^%]+)%")
+                "curly_braces" -> Regex("\\{([^}]+)}")
+                else -> Regex("\\{([^}]+)}")
+            }
+        }
+    }
 
     /**
      * Formats a message with color codes and placeholders.
@@ -28,26 +56,86 @@ object MessageFormatter {
      *                要格式化的原始消息。
      * @param placeholders Map of placeholder keys to replacement values.
      *                    占位符键到替换值的映射。
+     * @param placeholderStyle The style of placeholders to use.
+     *                         要使用的占位符样式。
      * @return The formatted message.
      *         格式化后的消息。
      */
-    fun format(message: String, placeholders: Map<String, String> = emptyMap()): String {
+    fun format(
+        message: String, 
+        placeholders: Map<String, String> = emptyMap(),
+        placeholderStyle: String = "curly_braces"
+    ): String {
         if (message.isEmpty()) return message
-
+        
+        // If no placeholders, just process color codes
+        if (placeholders.isEmpty()) {
+            return ColorUtil.process(message)
+        }
+        
+        // Create cache key for this message and placeholders combination
+        val cacheKey = createCacheKey(message, placeholders, placeholderStyle)
+        
+        // Check cache first
+        messageCache[cacheKey]?.let { return it }
+        
         var formattedMessage = message
 
-        // Replace placeholders
-        // 替换占位符
-        placeholders.forEach { (key, value) ->
-            formattedMessage = formattedMessage.replace("{$key}", value)
+        // Use regex to replace all placeholders at once for better performance
+        val regex = getPlaceholderRegex(placeholderStyle)
+        formattedMessage = regex.replace(formattedMessage) { matchResult ->
+            val placeholderKey = matchResult.groupValues[1]
+            placeholders[placeholderKey] ?: matchResult.value
         }
 
         // Process color codes
-        // 处理颜色代码
         formattedMessage = ColorUtil.process(formattedMessage)
+        
+        // Cache the result
+        cacheMessage(cacheKey, formattedMessage)
 
         return formattedMessage
     }
+
+    /**
+     * Creates a cache key for message and placeholders.
+     * 为消息和占位符创建缓存键。
+     */
+    private fun createCacheKey(
+        message: String, 
+        placeholders: Map<String, String>,
+        placeholderStyle: String = "curly_braces"
+    ): String {
+        val sortedPlaceholders = placeholders.entries.sortedBy { it.key }
+        return "$message|$placeholderStyle|${sortedPlaceholders.joinToString(",") { "${it.key}=${it.value}" }}"
+    }
+
+    /**
+     * Caches a formatted message with size limit.
+     * 缓存格式化的消息并限制大小。
+     */
+    private fun cacheMessage(key: String, value: String) {
+        if (messageCache.size >= MAX_CACHE_SIZE) {
+            // Remove oldest entries when cache is full
+            val keysToRemove = messageCache.keys.take(messageCache.size - MAX_CACHE_SIZE + 1)
+            keysToRemove.forEach { messageCache.remove(it) }
+        }
+        messageCache[key] = value
+    }
+
+    /**
+     * Clears the message cache.
+     * 清除消息缓存。
+     */
+    fun clearCache() {
+        messageCache.clear()
+    }
+
+    /**
+     * Gets the current cache size.
+     * 获取当前缓存大小。
+     */
+    fun getCacheSize(): Int = messageCache.size
 
     /**
      * Formats a list of messages.
@@ -57,11 +145,17 @@ object MessageFormatter {
      *                 要格式化的消息列表。
      * @param placeholders Map of placeholder keys to replacement values.
      *                    占位符键到替换值的映射。
+     * @param placeholderStyle The style of placeholders to use.
+     *                         要使用的占位符样式。
      * @return The list of formatted messages.
      *         格式化后的消息列表。
      */
-    fun formatList(messages: List<String>, placeholders: Map<String, String> = emptyMap()): List<String> {
-        return messages.map { format(it, placeholders) }
+    fun formatList(
+        messages: List<String>, 
+        placeholders: Map<String, String> = emptyMap(),
+        placeholderStyle: String = "curly_braces"
+    ): List<String> {
+        return messages.map { format(it, placeholders, placeholderStyle) }
     }
 
     /**

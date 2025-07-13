@@ -33,6 +33,34 @@ object CommandManager {
     // pluginCommands is now primarily for unregistration, CommandInfo holds the authoritative plugin instance
     internal val pluginCommandsByPlugin = mutableMapOf<Plugin, MutableList<String>>()
     
+    // Cache for tab completions to improve performance
+    private val tabCompletionCache = mutableMapOf<String, List<String>>()
+    
+
+    
+    // Maximum cache size to prevent memory leaks
+    // 最大缓存大小以防止内存泄漏
+    private const val MAX_CACHE_SIZE = 500
+    
+    // Command execution statistics for monitoring
+    // 命令执行统计用于监控
+    private val commandStats = mutableMapOf<String, CommandStats>()
+    
+    /**
+     * Statistics for command execution.
+     * 命令执行统计。
+     */
+    data class CommandStats(
+        var totalExecutions: Long = 0,
+        var successfulExecutions: Long = 0,
+        var failedExecutions: Long = 0,
+        var totalExecutionTime: Long = 0,
+        var lastExecutionTime: Long = 0
+    ) {
+        val averageExecutionTime: Long get() = if (totalExecutions > 0) totalExecutionTime / totalExecutions else 0
+        val successRate: Double get() = if (totalExecutions > 0) successfulExecutions.toDouble() / totalExecutions else 0.0
+    }
+    
     /**
      * Registers a command class with the command system.
      * 向命令系统注册命令类。
@@ -133,6 +161,71 @@ object CommandManager {
      *         命令名称列表。
      */
     fun getPluginCommands(plugin: Plugin): List<String> = pluginCommandsByPlugin[plugin]?.toList() ?: emptyList()
+
+    /**
+     * Clears all caches to free memory.
+     * 清除所有缓存以释放内存。
+     */
+    fun clearCaches() {
+        tabCompletionCache.clear()
+        Logger.debug("Command manager caches cleared")
+    }
+
+    /**
+     * Gets cache statistics for monitoring.
+     * 获取缓存统计信息用于监控。
+     *
+     * @return A map containing cache statistics.
+     *         包含缓存统计信息的映射。
+     */
+    fun getCacheStats(): Map<String, Int> = mapOf(
+        "tab_completion_cache_size" to tabCompletionCache.size,
+        "registered_commands" to registeredCommands.size
+    )
+
+    /**
+     * Gets command execution statistics.
+     * 获取命令执行统计信息。
+     *
+     * @param commandName The command name, or null for all commands.
+     *                    命令名称，或null表示所有命令。
+     * @return The command statistics.
+     *         命令统计信息。
+     */
+    fun getCommandStats(commandName: String? = null): Map<String, CommandStats> {
+        return if (commandName != null) {
+            commandStats.filterKeys { it == commandName }
+        } else {
+            commandStats.toMap()
+        }
+    }
+
+    /**
+     * Resets command execution statistics.
+     * 重置命令执行统计信息。
+     *
+     * @param commandName The command name, or null for all commands.
+     *                    命令名称，或null表示所有命令。
+     */
+    fun resetCommandStats(commandName: String? = null) {
+        if (commandName != null) {
+            commandStats.remove(commandName)
+        } else {
+            commandStats.clear()
+        }
+        Logger.debug("Command statistics reset for ${commandName ?: "all commands"}")
+    }
+
+    /**
+     * Manages cache size to prevent memory leaks.
+     * 管理缓存大小以防止内存泄漏。
+     */
+    internal fun manageCacheSize() {
+        if (tabCompletionCache.size > MAX_CACHE_SIZE) {
+            val keysToRemove = tabCompletionCache.keys.take(tabCompletionCache.size - MAX_CACHE_SIZE + 1)
+            keysToRemove.forEach { tabCompletionCache.remove(it) }
+        }
+    }
     
     private fun createCommandInstance(commandClass: KClass<out BaseCommand>): BaseCommand {
         return try {
@@ -290,14 +383,31 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
             
             if (isAsync) {
                 Bukkit.getScheduler().runTaskAsynchronously(commandInfo.plugin, Runnable {
-                    val result = try { executionLogic() } catch (e: Exception) {
+                    val result = try { 
+                        executionLogic() 
+                    } catch (e: Exception) {
                         Logger.severe("Async error executing command ${commandInfo.name}: ${e.message}")
+                        e.printStackTrace()
                         CommandResult.ERROR
                     }
-                    Bukkit.getScheduler().runTask(commandInfo.plugin, Runnable { handleCommandResult(context, result) })
+                    
+                    // Schedule result handling on main thread
+                    Bukkit.getScheduler().runTask(commandInfo.plugin, Runnable { 
+                        try {
+                            handleCommandResult(context, result) 
+                        } catch (e: Exception) {
+                            Logger.severe("Error handling async command result: ${e.message}")
+                            context.sender.sendMessage("§cAn error occurred while processing the command result.")
+                        }
+                    })
                 })
             } else {
-                handleCommandResult(context, executionLogic())
+                try {
+                    handleCommandResult(context, executionLogic())
+                } catch (e: Exception) {
+                    Logger.severe("Error executing command ${commandInfo.name}: ${e.message}")
+                    context.sender.sendMessage("§cAn error occurred while executing the command.")
+                }
             }
             true
         } catch (e: Exception) {
@@ -413,6 +523,7 @@ private class ArLibsCommandExecutor(private val commandInfo: CommandInfo) : org.
      */
     private fun checkPermission(sender: CommandSender, permInfo: PermissionInfo): Boolean {
         if (permInfo.op && sender.isOp) return true
+        
         return when (permInfo.defaultValue) {
             PermissionDefault.TRUE -> sender.hasPermission(permInfo.value) || !sender.isPermissionSet(permInfo.value)
             PermissionDefault.FALSE -> sender.hasPermission(permInfo.value)

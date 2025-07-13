@@ -39,9 +39,18 @@ alwaysApply: true
         *   [ConfigCommentProcessor.kt](mdc:src/main/kotlin/com/arteam/arLibs/config/ConfigCommentProcessor.kt): 配置注释处理器
         *   `annotations/`: 配置注解定义
         *   `validation/`: 配置验证器
+    *   `language/`: 语言系统模块，处理国际化和本地化
+        *   [LanguageAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageAPI.kt): 语言系统公共API
+        *   [LanguageManager.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageManager.kt): 语言管理器
+        *   [LanguageConfig.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageConfig.kt): 语言配置类
+        *   [MessageFormatter.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/MessageFormatter.kt): 消息格式化器
     *   `utils/`: 工具类模块
     *   [ArLibs.kt](mdc:src/main/kotlin/com/arteam/arLibs/ArLibs.kt): 插件主类
 *   `src/main/resources/`: 存放项目的资源文件，例如 `plugin.yml` (Bukkit/Spigot/Paper 插件描述文件), 配置文件模板等。
+    *   `languages/`: 语言文件目录
+        *   `en.yml`: 英文语言文件
+        *   `zh_cn.yml`: 简体中文语言文件
+        *   `zh_tw.yml`: 繁体中文语言文件
 
 ## 重要文件
 
@@ -78,6 +87,13 @@ alwaysApply: true
 - **注释处理**: [ConfigCommentProcessor.kt](mdc:src/main/kotlin/com/arteam/arLibs/config/ConfigCommentProcessor.kt) 处理配置文件注释
 - **注解系统**: `annotations/` 目录定义配置相关注解
 
+### Language系统
+处理国际化和本地化，支持多语言消息、占位符替换、复数形式等。
+- **核心组件**: [LanguageAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageAPI.kt) 提供外部API
+- **管理器**: [LanguageManager.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageManager.kt) 管理语言文件加载和缓存
+- **格式化器**: [MessageFormatter.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/MessageFormatter.kt) 处理消息格式化和占位符替换
+- **配置**: [LanguageConfig.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageConfig.kt) 定义语言系统配置
+
 ## 导航提示
 
 *   当需要理解项目如何构建时，请查阅 [build.gradle.kts](mdc:build.gradle.kts)。
@@ -86,4 +102,5 @@ alwaysApply: true
 *   当需要扩展Action系统时，实现 [Action.kt](mdc:src/main/kotlin/com/arteam/arLibs/action/Action.kt) 接口并在 [ActionParser.kt](mdc:src/main/kotlin/com/arteam/arLibs/action/ActionParser.kt) 中注册。
 *   当需要创建新的命令时，继承 [BaseCommand.kt](mdc:src/main/kotlin/com/arteam/arLibs/command/BaseCommand.kt) 并使用注解系统。
 *   当需要添加新的条件类型时，实现 [Condition.kt](mdc:src/main/kotlin/com/arteam/arLibs/condition/Condition.kt) 接口并在 [ConditionParser.kt](mdc:src/main/kotlin/com/arteam/arLibs/condition/ConditionParser.kt) 中注册。
+*   当需要处理多语言支持时，使用 [LanguageAPI.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/LanguageAPI.kt) 获取消息，通过 [MessageFormatter.kt](mdc:src/main/kotlin/com/arteam/arLibs/language/MessageFormatter.kt) 格式化。
 

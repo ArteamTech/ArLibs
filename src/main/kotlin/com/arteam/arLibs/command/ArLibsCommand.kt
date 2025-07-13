@@ -507,12 +507,7 @@ class ArLibsCommand : BaseCommand() {
             context.args.isEmpty() -> {
                 // Show current language
                 val currentLanguage = LanguageAPI.getPlayerLanguage(getPlayer())
-                val languageName = when (currentLanguage) {
-                    "en" -> "English"
-                    "zh_cn" -> "简体中文"
-                    "zh_tw" -> "繁體中文"
-                    else -> currentLanguage
-                }
+                val languageName = getLanguageDisplayName(currentLanguage)
                 
                 sendLocalized("language.current", mapOf("language" to languageName))
                 CommandResult.SUCCESS
@@ -525,14 +520,7 @@ class ArLibsCommand : BaseCommand() {
                     "list", "available" -> {
                         // Show available languages
                         val languages = LanguageAPI.getSupportedLanguages()
-                        val languageNames = languages.map { 
-                            when (it) {
-                                "en" -> "English"
-                                "zh_cn" -> "简体中文"
-                                "zh_tw" -> "繁體中文"
-                                else -> it
-                            }
-                        }
+                        val languageNames = languages.map { getLanguageDisplayName(it) }
                         
                         sendLocalized("language.available", mapOf("languages" to languageNames.joinToString(", ")))
                         CommandResult.SUCCESS
@@ -575,12 +563,7 @@ class ArLibsCommand : BaseCommand() {
                         
                         if (LanguageAPI.isLanguageSupported(language)) {
                             LanguageAPI.setPlayerLanguage(getPlayer(), language)
-                            val languageName = when (language) {
-                                "en" -> "English"
-                                "zh_cn" -> "简体中文"
-                                "zh_tw" -> "繁體中文"
-                                else -> language
-                            }
+                            val languageName = getLanguageDisplayName(language)
                             sendLocalizedSuccess("language.set", mapOf("language" to languageName))
                             CommandResult.SUCCESS
                         } else {
@@ -654,5 +637,63 @@ class ArLibsCommand : BaseCommand() {
         val subCommands = listOf("help", "info", "commands", "reload", "debug", "version", "action", "condition", "language")
         val input = context.args.lastOrNull() ?: ""
         return subCommands.filter { it.startsWith(input, ignoreCase = true) }
+    }
+
+    // Helper methods to reduce code duplication / 辅助方法以减少代码重复
+    
+    /**
+     * Converts language code to display name.
+     * 将语言代码转换为显示名称。
+     *
+     * @param languageCode The language code.
+     *                    语言代码。
+     * @return The display name for the language.
+     *         语言的显示名称。
+     */
+    private fun getLanguageDisplayName(languageCode: String): String = when (languageCode) {
+        "en" -> "English"
+        "zh_cn" -> "简体中文"
+        "zh_tw" -> "繁體中文"
+        else -> languageCode
+    }
+    
+
+    
+    /**
+     * Validates command arguments and shows usage if invalid.
+     * 验证命令参数，如果无效则显示用法。
+     *
+     * @param context The command context.
+     *                命令上下文。
+     * @param minArgs The minimum number of arguments required.
+     *                所需的最小参数数量。
+     * @param maxArgs The maximum number of arguments allowed.
+     *                允许的最大参数数量。
+     * @return true if arguments are valid, false otherwise.
+     *         如果参数有效则返回true，否则返回false。
+     */
+    private fun validateArgs(context: CommandContext, minArgs: Int, maxArgs: Int = Int.MAX_VALUE): Boolean {
+        if (!validateArgCount(minArgs, maxArgs)) {
+            sendLocalizedError("command.invalid_usage", fallbackMessage = "Invalid number of arguments")
+            return false
+        }
+        return true
+    }
+    
+    /**
+     * Shows a formatted help section.
+     * 显示格式化的帮助部分。
+     *
+     * @param title The section title.
+     *              部分标题。
+     * @param items The help items to display.
+     *              要显示的帮助项。
+     */
+    private fun showHelpSection(title: String, vararg items: String) {
+        send(
+            "&6=== &e$title &6===",
+            *items,
+            ""
+        )
     }
 } 

@@ -290,4 +290,134 @@ abstract class BaseCommand {
         FeedbackType.SUBCOMMAND_NOT_FOUND -> "&cSubcommand not found."
         FeedbackType.ERROR -> "&cAn error occurred while executing the command."
     }
+
+    // Argument validation and conversion utilities / 参数验证和转换工具
+    
+    /**
+     * Gets an argument at the specified index, or null if not present.
+     * 获取指定索引的参数，如果不存在则返回null。
+     *
+     * @param index The argument index.
+     *              参数索引。
+     * @return The argument value, or null if not present.
+     *         参数值，如果不存在则返回null。
+     */
+    protected fun getArg(index: Int): String? = getCurrentContext().args.getOrNull(index)
+    
+    /**
+     * Gets an argument at the specified index, or throws an exception if not present.
+     * 获取指定索引的参数，如果不存在则抛出异常。
+     *
+     * @param index The argument index.
+     *              参数索引。
+     * @return The argument value.
+     *         参数值。
+     * @throws IllegalArgumentException if the argument is not present.
+     *                                  如果参数不存在则抛出IllegalArgumentException。
+     */
+    protected fun getRequiredArg(index: Int): String = getArg(index) 
+        ?: throw IllegalArgumentException("Required argument at index $index is missing")
+    
+    /**
+     * Converts an argument to an integer.
+     * 将参数转换为整数。
+     *
+     * @param index The argument index.
+     *              参数索引。
+     * @param defaultValue The default value if conversion fails.
+     *                     如果转换失败时的默认值。
+     * @return The integer value.
+     *         整数值。
+     */
+    protected fun getIntArg(index: Int, defaultValue: Int = 0): Int {
+        return getArg(index)?.toIntOrNull() ?: defaultValue
+    }
+    
+    /**
+     * Converts an argument to a double.
+     * 将参数转换为双精度浮点数。
+     *
+     * @param index The argument index.
+     *              参数索引。
+     * @param defaultValue The default value if conversion fails.
+     *                     如果转换失败时的默认值。
+     * @return The double value.
+     *         双精度浮点数值。
+     */
+    protected fun getDoubleArg(index: Int, defaultValue: Double = 0.0): Double {
+        return getArg(index)?.toDoubleOrNull() ?: defaultValue
+    }
+    
+    /**
+     * Converts an argument to a boolean.
+     * 将参数转换为布尔值。
+     *
+     * @param index The argument index.
+     *              参数索引。
+     * @param defaultValue The default value if conversion fails.
+     *                     如果转换失败时的默认值。
+     * @return The boolean value.
+     *         布尔值。
+     */
+    protected fun getBooleanArg(index: Int, defaultValue: Boolean = false): Boolean {
+        return getArg(index)?.toBoolean() ?: defaultValue
+    }
+    
+    /**
+     * Validates that the number of arguments is within the specified range.
+     * 验证参数数量是否在指定范围内。
+     *
+     * @param minArgs The minimum number of arguments.
+     *                最小参数数量。
+     * @param maxArgs The maximum number of arguments.
+     *                最大参数数量。
+     * @return true if the argument count is valid, false otherwise.
+     *         如果参数数量有效则返回true，否则返回false。
+     */
+    protected fun validateArgCount(minArgs: Int, maxArgs: Int = Int.MAX_VALUE): Boolean {
+        val argCount = getCurrentContext().args.size
+        return argCount in minArgs..maxArgs
+    }
+    
+    /**
+     * Validates that the number of arguments matches the expected count.
+     * 验证参数数量是否匹配预期数量。
+     *
+     * @param expectedCount The expected number of arguments.
+     *                      预期的参数数量。
+     * @return true if the argument count matches, false otherwise.
+     *         如果参数数量匹配则返回true，否则返回false。
+     */
+    protected fun validateArgCount(expectedCount: Int): Boolean {
+        return getCurrentContext().args.size == expectedCount
+    }
+    
+    /**
+     * Gets all remaining arguments from a specific index.
+     * 从特定索引获取所有剩余参数。
+     *
+     * @param startIndex The starting index.
+     *                   起始索引。
+     * @return A list of remaining arguments.
+     *         剩余参数列表。
+     */
+    protected fun getRemainingArgs(startIndex: Int): List<String> {
+        val args = getCurrentContext().args
+        return if (startIndex < args.size) args.drop(startIndex) else emptyList()
+    }
+    
+    /**
+     * Joins remaining arguments from a specific index into a single string.
+     * 将特定索引后的剩余参数连接成单个字符串。
+     *
+     * @param startIndex The starting index.
+     *                   起始索引。
+     * @param separator The separator to use between arguments.
+     *                  参数之间的分隔符。
+     * @return The joined string.
+     *         连接后的字符串。
+     */
+    protected fun joinRemainingArgs(startIndex: Int, separator: String = " "): String {
+        return getRemainingArgs(startIndex).joinToString(separator)
+    }
 } 
